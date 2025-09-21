@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 from sqlalchemy.sql import func
 from typing import Optional
-from db import Memory
+from .db import Memory
 import uuid
 
 def save_memory(session: Session, user_id: str, content: str,

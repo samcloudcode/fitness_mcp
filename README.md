@@ -1,59 +1,81 @@
 # Fitness MCP Project
 
-A collection of MCP (Model Context Protocol) servers for fitness and productivity applications.
+MCP (Model Context Protocol) server for memory storage with full-text search capabilities using Supabase Postgres.
 
-## Projects
+## Features
 
-### 📝 [Memory MCP Server](./memory-mcp-server)
-A persistent memory storage system with full-text search capabilities using Supabase Postgres.
-
-**Features:**
-- Store and retrieve memories with user context
-- Full-text search across all memories
-- Topic-based categorization
-- Production-ready deployment
-
-**Status:** ✅ Complete
+- 📝 **Memory Storage**: Store and retrieve memories with user context
+- 🔍 **Full-Text Search**: Search across all memories using PostgreSQL's full-text search
+- 🏷️ **Topic Categorization**: Organize memories by topics
+- 🚀 **Production Ready**: Built with SQLAlchemy and FastMCP
 
 ## Project Structure
 
 ```
 fitness_mcp/
-├── memory-mcp-server/     # Memory storage MCP server
+├── src/
+│   ├── mcp_server.py      # MCP server entry point
+│   └── memory/            # Memory module
+│       ├── __init__.py
+│       ├── crud.py        # Database operations
+│       └── db.py          # Database configuration
+├── tests/                 # Test files
+│   └── test_memory_server.py
+├── migrations/            # Database migrations
+│   └── 001_create_memories.sql
 ├── PRPs/                  # Project Reference Patterns
-│   └── memory-server.md   # Memory server implementation spec
+│   └── memory-server.md   # Memory server spec
+├── pyproject.toml         # Project configuration
 └── README.md             # This file
 ```
 
 ## Getting Started
 
-Each MCP server is a standalone project. To get started with any server:
-
-1. Navigate to the server directory
-2. Follow the README instructions in that directory
-3. Each server has its own dependencies and configuration
-
-## Development Setup
-
 ### Prerequisites
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
-- Supabase account (for database-backed servers)
+- PostgreSQL database (Supabase or local)
 
-### Common Commands
+### Setup
 
+1. **Clone the repository**
 ```bash
-# Enter a project
-cd memory-mcp-server
+git clone <your-repo>
+cd fitness_mcp
+```
 
-# Install dependencies
+2. **Install dependencies**
+```bash
 uv sync
+```
 
-# Run tests
-uv run python test_server.py
+3. **Configure database**
+Create a `.env` file with your database URL:
+```env
+DATABASE_URL=postgresql://user:password@host:port/database
+```
 
-# Start MCP server
+4. **Run migrations**
+Execute the SQL migration in your database:
+```bash
+psql $DATABASE_URL < migrations/001_create_memories.sql
+```
+
+### Usage
+
+**Run tests:**
+```bash
+uv run python tests/test_memory_server.py
+```
+
+**Start the MCP server:**
+```bash
 uv run python -m src.mcp_server
+```
+
+**Or use the script entry point:**
+```bash
+uv run memory-server
 ```
 
 ## MCP Protocol

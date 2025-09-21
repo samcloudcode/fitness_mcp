@@ -9,8 +9,8 @@ load_dotenv()
 
 # Now test the server
 import asyncio
-from src import crud
-from src.db import SessionLocal
+from src.memory import crud
+from src.memory.db import SessionLocal
 
 def test_crud_operations():
     """Test basic CRUD operations"""

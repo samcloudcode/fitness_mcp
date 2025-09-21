@@ -1,14 +1,15 @@
 [project]
 name = "fitness-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for memory storage with full-text search"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=2.12.3",
+    "psycopg[binary]>=3.2.10",
+    "python-dotenv>=1.1.1",
+    "sqlalchemy>=2.0.43",
 ]
 
-[tool.uv.workspace]
-members = [
-    "memory-mcp-server",
-]
+[project.scripts]
+memory-server = "src.mcp_server:main"
