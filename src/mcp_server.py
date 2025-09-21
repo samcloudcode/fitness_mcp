@@ -3,6 +3,11 @@ from typing import Optional
 from contextlib import contextmanager
 from dotenv import load_dotenv
 import os
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load environment variables
 load_dotenv()
