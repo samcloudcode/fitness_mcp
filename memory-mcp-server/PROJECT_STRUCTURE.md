@@ -22,8 +22,7 @@ memory-mcp-server/              # Root of the MCP server project
 ├── .env.example              # Example environment template
 ├── .gitignore                # Git ignore rules
 ├── pyproject.toml            # Python project & dependencies
-├── Dockerfile                # Container for Fly.io deployment
-├── fly.toml                  # Fly.io deployment config
+├── Dockerfile                # Container for deployment
 ├── README.md                 # User documentation
 ├── test_server.py            # Integration tests
 └── test_integration.py       # MCP client tests
@@ -76,9 +75,8 @@ uv run python test_server.py
 - Use .env file for credentials
 - Run with `uv run` for dependency management
 
-### Fly.io Production
-- Set secrets with `fly secrets set DATABASE_URL=...`
-- Deploy with `fly deploy`
+### Production
+- Set DATABASE_URL environment variable
 - Uses Dockerfile for containerization
 
 ## Best Practices

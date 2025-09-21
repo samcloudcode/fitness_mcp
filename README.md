@@ -11,7 +11,7 @@ A persistent memory storage system with full-text search capabilities using Supa
 - Store and retrieve memories with user context
 - Full-text search across all memories
 - Topic-based categorization
-- Production-ready with Fly.io deployment
+- Production-ready deployment
 
 **Status:** ✅ Complete
 

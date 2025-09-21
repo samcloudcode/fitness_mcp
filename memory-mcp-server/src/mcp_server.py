@@ -7,8 +7,8 @@ import os
 # Load environment variables
 load_dotenv()
 
-from . import crud
-from .db import SessionLocal
+import crud
+from db import SessionLocal
 
 mcp = FastMCP("Memory Server")
 

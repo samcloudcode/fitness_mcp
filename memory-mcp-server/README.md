@@ -97,14 +97,6 @@ See `.env.example` for connection string format.
 
 ## Deployment
 
-### Fly.io
-
-```bash
-fly launch
-fly secrets set DATABASE_URL="your-database-url"
-fly deploy
-```
-
 ### Docker
 
 ```bash
