@@ -7,9 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=2.12.3",
     "psycopg[binary]>=3.2.10",
+    "pytest>=8.4.2",
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.43",
 ]
-
-[project.scripts]
-memory-server = "src.mcp_server:main"
