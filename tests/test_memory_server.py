@@ -2,10 +2,24 @@
 """Test the Memory MCP Server directly"""
 
 import os
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load environment variables from .env
 load_dotenv()
+
+# Configure Logfire for testing (console only, no remote sending)
+import logfire
+logfire.configure(
+    send_to_logfire=False,  # Don't send to remote Logfire service
+    environment='testing',
+    console=logfire.ConsoleOptions(min_log_level='info'),
+    min_level='info'
+)
 
 # Now test the server
 import asyncio

@@ -12,12 +12,23 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 
-# Create engine with psycopg3
+# Optimized for Supabase pooler connection
+# Since Supabase already provides connection pooling, we keep a minimal local pool
 engine = create_engine(
     DATABASE_URL,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True
+    pool_size=2,  # Small local pool since Supabase handles pooling
+    max_overflow=3,  # Allow some overflow for bursts
+    pool_pre_ping=False,  # Supabase pooler handles dead connections
+    pool_recycle=-1,  # Disable recycling, let Supabase handle it
+    echo_pool=False,  # Disable pool debugging
+    connect_args={
+        "connect_timeout": 10,
+        "options": "-c statement_timeout=30000",  # 30 second statement timeout
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    } if DATABASE_URL.startswith("postgresql") else {}
 )
 
 Base = declarative_base()
@@ -40,4 +51,9 @@ class Memory(Base):
               postgresql_using='gin'),
     )
 
-SessionLocal = sessionmaker(bind=engine)
+# Create session factory with autoflush disabled for better performance
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,  # Disable autoflush for better performance
+    expire_on_commit=False  # Don't expire objects after commit
+)
