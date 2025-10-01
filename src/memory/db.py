@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Index
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
+from sqlalchemy import create_engine, Column, String, Text, DateTime, Index, Integer, UniqueConstraint, Date
+from sqlalchemy.dialects.postgresql import UUID, TSVECTOR, JSONB
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import os
+from sqlalchemy import text as sql_text
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
@@ -33,22 +34,34 @@ engine = create_engine(
 
 Base = declarative_base()
 
-class Memory(Base):
-    __tablename__ = "memories"
+
+class Entry(Base):
+    __tablename__ = "entries"
 
     id = Column(UUID, primary_key=True, server_default=func.gen_random_uuid())
     user_id = Column(String(255), nullable=False, index=True)
+    kind = Column(String(50), nullable=False, index=True)
+    key = Column(String(255), nullable=True, index=True)
+    parent_key = Column(String(255), nullable=True, index=True)
     content = Column(Text, nullable=False)
-    topic = Column(String(255), index=True)
-    embedding = Column(Text)  # Reserved for pgvector
+    status = Column(String(50))
+    priority = Column(Integer)
+    tags = Column(String(255))
+    occurred_at = Column(DateTime(timezone=True))
+    due_date = Column(Date)
+    attrs = Column(JSONB, nullable=False, server_default=sql_text("'{}'::jsonb"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Generated tsvector column for FTS
     __table_args__ = (
-        Index('idx_memories_fts',
-              func.to_tsvector('english', content),
-              postgresql_using='gin'),
+        UniqueConstraint('user_id', 'kind', 'key', name='uq_entries_user_kind_key'),
+        Index(
+            'idx_entries_fts',
+            func.to_tsvector('english', func.concat(func.coalesce(key, ''), ' ', content)),
+            postgresql_using='gin'
+        ),
+        Index('idx_entries_user_kind_parent', 'user_id', 'kind', 'parent_key'),
+        Index('idx_entries_user_occured_at', 'user_id', 'occurred_at'),
     )
 
 # Create session factory with autoflush disabled for better performance
