@@ -68,8 +68,35 @@ def test_mcp_workflow(cleanup_entries) -> None:
         )
         assert updated["priority"] == 2
 
+        bulk = await _call_json(
+            session,
+            "bulk_upsert_items",
+            items=[
+                {
+                    "kind": "knowledge",
+                    "key": "mcp-knee-health",
+                    "content": "Bulk updated knee guidance",
+                    "status": "active",
+                },
+                {
+                    "kind": "plan",
+                    "key": "mcp-strength-block",
+                    "content": "Strength progression",
+                    "status": "active",
+                    "due_date": "2025-12-31",
+                },
+            ],
+        )
+        assert {item["key"] for item in bulk} >= {"mcp-knee-health", "mcp-strength-block"}
+        bulk_goal = next(item for item in bulk if item["key"] == "mcp-knee-health")
+        assert bulk_goal["content"] == "Bulk updated knee guidance"
+
+        strength_plan = await _call_json(session, "get_item", kind="plan", key="mcp-strength-block")
+        assert strength_plan["due_date"] == "2025-12-31"
+
         listed = await _call_json(session, "list_items", kind="knowledge")
         assert isinstance(listed, list) and len(listed) == 1
+        assert listed[0]["content"].startswith("Bulk updated")
 
         search = await _call_json(session, "search_entries", query="knee", kind="knowledge")
         assert search and search[0]["key"] == "mcp-knee-health"
@@ -84,6 +111,20 @@ def test_mcp_workflow(cleanup_entries) -> None:
         )
         await _call_json(
             session,
+            "bulk_upsert_items",
+            items=[
+                {
+                    "kind": "plan",
+                    "key": "mcp-strength-block",
+                    "content": "Strength progression",
+                    "status": "archived",
+                }
+            ],
+        )
+        strength_plan_after = await _call_json(session, "get_item", kind="plan", key="mcp-strength-block")
+        assert strength_plan_after["status"] == "archived"
+        await _call_json(
+            session,
             "log_event",
             kind="workout",
             content="Easy run 6km",
@@ -95,8 +136,7 @@ def test_mcp_workflow(cleanup_entries) -> None:
         assert events and events[0]["attrs"].get("distance_km") == 6.0
 
         overview = await _call_json(session, "get_overview")
-        assert overview["user_id"] == user_id
-        assert overview["counts_by_kind"]["plan"] == 1
+        assert overview["counts_by_kind"]["plan"] >= 2
         assert overview["workouts"]["recent"]
 
         conventions = await _call_json(session, "describe_conventions")

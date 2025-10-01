@@ -2,12 +2,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, update, delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.sql import func
-from typing import Optional, Any
+from typing import Optional, Any, Iterable
 from .db import Entry
 import uuid
 import logfire
 from datetime import datetime, date, timezone
 import json
+from collections import defaultdict
 
 
 def _serialize(entry: Entry) -> dict:
@@ -27,6 +28,75 @@ def _serialize(entry: Entry) -> dict:
         "created_at": entry.created_at.isoformat() if entry.created_at else None,
         "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
     }
+
+
+def _format_timestamp(value: Optional[datetime]) -> Optional[str]:
+    if not value:
+        return None
+    ts = value
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    else:
+        ts = ts.astimezone(timezone.utc)
+    has_seconds = bool(ts.second or ts.microsecond)
+    fmt = "%Y-%m-%d %H:%M:%S" if has_seconds else "%Y-%m-%d %H:%M"
+    return f"{ts.strftime(fmt)}Z"
+
+
+def _short_ref(entry_id: uuid.UUID) -> str:
+    return entry_id.hex[:8]
+
+
+def _clean_entry(entry: Entry, *, drop_parent: bool = False) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "kind": entry.kind,
+        "key": entry.key,
+        "parent_key": entry.parent_key,
+        "content": entry.content,
+        "status": entry.status,
+        "priority": entry.priority,
+        "tags": entry.tags,
+        "occurred_at": _format_timestamp(entry.occurred_at),
+        "due_date": entry.due_date.isoformat() if entry.due_date else None,
+        "created_at": _format_timestamp(entry.created_at),
+        "updated_at": _format_timestamp(entry.updated_at),
+    }
+
+    attrs = entry.attrs or {}
+    for key, value in attrs.items():
+        if key in data and data[key] is not None:
+            continue
+        data[key] = value
+
+    if drop_parent:
+        data.pop("parent_key", None)
+
+    if entry.key is None:
+        data.pop("key", None)
+        data["ref"] = _short_ref(entry.id)
+
+    cleaned: dict[str, Any] = {}
+    for key, value in data.items():
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        cleaned[key] = value
+
+    return cleaned
+
+
+def _group_by_status(entries: list[Entry], *, default_key: str = "other") -> dict[str, list[Entry]]:
+    groups: dict[str, list[Entry]] = defaultdict(list)
+    for entry in entries:
+        status = (entry.status or "").strip().lower()
+        if status == "archived":
+            continue
+        if status in {"completed"}:
+            status = "achieved"
+        key = status or default_key
+        groups[key].append(entry)
+    return groups
 
 
 def upsert_item(
@@ -76,6 +146,63 @@ def upsert_item(
             select(Entry).where(and_(Entry.user_id == user_id, Entry.kind == kind, Entry.key == key))
         ).scalar_one()
         return _serialize(entry)
+
+
+def bulk_upsert_items(
+    session: Session,
+    user_id: str,
+    items: Iterable[dict[str, Any]],
+) -> list[dict]:
+    """Upsert multiple keyed items in a single statement."""
+    items = list(items)
+    with logfire.span('bulk upsert items', user_id=user_id, count=len(items)):
+        if not items:
+            return []
+
+        values: list[dict[str, Any]] = []
+        for idx, item in enumerate(items):
+            try:
+                kind = item["kind"]
+                key = item["key"]
+                content = item["content"]
+            except KeyError as exc:  # pragma: no cover - defensive
+                missing = exc.args[0]
+                raise ValueError(f"bulk upsert item at position {idx} missing required field '{missing}'") from exc
+
+            values.append({
+                "user_id": user_id,
+                "kind": kind,
+                "key": key,
+                "parent_key": item.get("parent_key"),
+                "content": content,
+                "status": item.get("status"),
+                "priority": item.get("priority"),
+                "tags": item.get("tags"),
+                "due_date": item.get("due_date"),
+                "attrs": item.get("attrs") or {},
+            })
+
+        insert_stmt = pg_insert(Entry).values(values)
+        update_cols = {
+            "parent_key": insert_stmt.excluded.parent_key,
+            "content": insert_stmt.excluded.content,
+            "status": insert_stmt.excluded.status,
+            "priority": insert_stmt.excluded.priority,
+            "tags": insert_stmt.excluded.tags,
+            "due_date": insert_stmt.excluded.due_date,
+            "attrs": insert_stmt.excluded.attrs,
+            "updated_at": func.now(),
+        }
+
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=[Entry.user_id, Entry.kind, Entry.key],
+            set_=update_cols,
+        ).returning(Entry)
+
+        result = session.execute(stmt)
+        session.commit()
+        entries = result.scalars().all()
+        return [_serialize(entry) for entry in entries]
 
 
 def get_item(session: Session, user_id: str, *, kind: str, key: str) -> Optional[dict]:
@@ -208,75 +335,145 @@ def get_overview(session: Session, user_id: str) -> dict:
         stmt = select(Entry).where(Entry.user_id == user_id)
         entries = session.execute(stmt).scalars().all()
 
-        by_kind: dict[str, list[Entry]] = {}
-        for e in entries:
-            by_kind.setdefault(e.kind, []).append(e)
+        by_kind: dict[str, list[Entry]] = defaultdict(list)
+        for entry in entries:
+            by_kind[entry.kind].append(entry)
 
-        def _sorted(items: list[Entry]):
-            return sorted(items, key=lambda x: (
-                (x.priority if x.priority is not None else 99),
-                (x.updated_at or x.created_at or datetime.min),
-            ), reverse=True)
+        def _sorted(items: list[Entry]) -> list[Entry]:
+            return sorted(
+                items,
+                key=lambda x: (
+                    (x.priority if x.priority is not None else 99),
+                    (x.updated_at or x.created_at or datetime.min),
+                ),
+                reverse=True,
+            )
 
-        # Goals grouped by status
-        goals = by_kind.get('goal', [])
-        goals_grouped = {
-            'active': [_serialize(g) for g in _sorted([g for g in goals if (g.status or '').lower() == 'active'])],
-            'paused': [_serialize(g) for g in _sorted([g for g in goals if (g.status or '').lower() == 'paused'])],
-            'achieved': [_serialize(g) for g in _sorted([g for g in goals if (g.status or '').lower() in ('achieved','completed')])],
-            'archived': [_serialize(g) for g in _sorted([g for g in goals if (g.status or '').lower() == 'archived'])],
-            'all': [_serialize(g) for g in _sorted(goals)],
+        counts_by_kind = {kind: len(items) for kind, items in by_kind.items() if items}
+
+        overview: dict[str, Any] = {
+            "generated_at": _format_timestamp(datetime.now(timezone.utc)),
+            "counts_by_kind": counts_by_kind,
         }
 
-        # Plans and steps
-        plans = by_kind.get('plan', [])
-        plan_steps = by_kind.get('plan-step', [])
-        steps_by_plan: dict[str, list[dict]] = {}
-        for s in plan_steps:
-            if s.parent_key:
-                steps_by_plan.setdefault(s.parent_key, []).append(_serialize(s))
-        for k in steps_by_plan:
-            steps_by_plan[k] = sorted(steps_by_plan[k], key=lambda x: (x.get('priority') or 99, x.get('key') or ''))
+        goals = by_kind.get("goal", [])
+        goal_groups = _group_by_status(goals, default_key="active") if goals else {}
+        goals_payload: dict[str, list[dict[str, Any]]] = {}
+        for status, items in goal_groups.items():
+            cleaned = [_clean_entry(item) for item in _sorted(items)]
+            if cleaned:
+                goals_payload[status] = cleaned
+        if goals_payload:
+            overview["goals"] = goals_payload
 
-        strategies = by_kind.get('strategy', [])
-        strategies_map = { (s.key or '').lower(): _serialize(s) for s in strategies }
+        plans = by_kind.get("plan", [])
+        plan_groups = _group_by_status(plans, default_key="active") if plans else {}
+        plans_payload: dict[str, Any] = {}
+        for status, items in plan_groups.items():
+            cleaned = [_clean_entry(item) for item in _sorted(items)]
+            if cleaned:
+                plans_payload[status] = cleaned
 
-        preferences = [_serialize(p) for p in _sorted(by_kind.get('preference', []))]
-        knowledge = [_serialize(k) for k in _sorted(by_kind.get('knowledge', []))]
-        principles = [_serialize(p) for p in _sorted(by_kind.get('principle', []))]
-        current = [_serialize(c) for c in _sorted(by_kind.get('current', []))]
+        plan_steps = by_kind.get("plan-step", [])
+        if plan_steps:
+            steps_by_plan: dict[str, list[dict[str, Any]]] = defaultdict(list)
+            for step in plan_steps:
+                if not step.parent_key:
+                    continue
+                if (step.status or "").strip().lower() == "archived":
+                    continue
+                steps_by_plan[step.parent_key].append(_clean_entry(step, drop_parent=True))
 
-        workouts = by_kind.get('workout', [])
-        recent_workouts = [_serialize(w) for w in sorted(workouts, key=lambda w: (w.occurred_at or w.created_at or datetime.min), reverse=True)[:25]]
+            sorted_steps: dict[str, list[dict[str, Any]]] = {}
+            for parent_key, items in steps_by_plan.items():
+                sorted_steps[parent_key] = sorted(
+                    items,
+                    key=lambda item: (
+                        item.get("priority", 99),
+                        item.get("key", ""),
+                    ),
+                )
+            if sorted_steps:
+                plans_payload["steps_by_plan"] = sorted_steps
 
-        counts_by_kind = {k: len(v) for k, v in by_kind.items()}
+        if plans_payload:
+            overview["plans"] = plans_payload
 
-        return {
-            'user_id': user_id,
-            'generated_at': datetime.now(timezone.utc).isoformat(),
-            'counts_by_kind': counts_by_kind,
-            'goals': goals_grouped,
-            'plans': {
-                'active': [_serialize(p) for p in _sorted([p for p in plans if (p.status or '').lower() == 'active'])],
-                'archived': [_serialize(p) for p in _sorted([p for p in plans if (p.status or '').lower() == 'archived'])],
-                'all': [_serialize(p) for p in _sorted(plans)],
-                'steps_by_plan': steps_by_plan,
-            },
-            'strategies': {
-                'short_term': strategies_map.get('short_term') or strategies_map.get('short-term'),
-                'long_term': strategies_map.get('long_term') or strategies_map.get('long-term'),
-                'all': [_serialize(s) for s in _sorted(strategies)],
-            },
-            'preferences': preferences,
-            'knowledge': knowledge,
-            'principles': principles,
-            'current': current,
-            'workouts': {
-                'recent': recent_workouts
-            },
-            'others': {
-                k: [_serialize(e) for e in _sorted(v)]
-                for k, v in by_kind.items()
-                if k not in {'goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout'}
-            }
+        strategies = by_kind.get("strategy", [])
+        if strategies:
+            strategy_block: dict[str, Any] = {}
+            items_clean = [_clean_entry(s) for s in _sorted(strategies)]
+            if items_clean:
+                strategy_block["items"] = items_clean
+
+            key_map = { (s.key or "").lower(): s for s in strategies }
+            short_term = key_map.get("short_term") or key_map.get("short-term")
+            long_term = key_map.get("long_term") or key_map.get("long-term")
+            if short_term:
+                strategy_block["short_term"] = _clean_entry(short_term)
+            if long_term:
+                strategy_block["long_term"] = _clean_entry(long_term)
+
+            if strategy_block:
+                overview["strategies"] = strategy_block
+
+        def _maybe_section(kind: str) -> Optional[list[dict[str, Any]]]:
+            entries_for_kind = by_kind.get(kind, [])
+            if not entries_for_kind:
+                return None
+            cleaned = [_clean_entry(item) for item in _sorted(entries_for_kind)]
+            return cleaned or None
+
+        preferences = _maybe_section("preference")
+        if preferences:
+            overview["preferences"] = preferences
+
+        knowledge = _maybe_section("knowledge")
+        if knowledge:
+            overview["knowledge"] = knowledge
+
+        principles = _maybe_section("principle")
+        if principles:
+            overview["principles"] = principles
+
+        current = _maybe_section("current")
+        if current:
+            overview["current"] = current
+
+        workouts = by_kind.get("workout", [])
+        if workouts:
+            recent = sorted(
+                workouts,
+                key=lambda item: (item.occurred_at or item.created_at or datetime.min),
+                reverse=True,
+            )[:25]
+            cleaned_recent = [_clean_entry(item) for item in recent]
+            if cleaned_recent:
+                overview["workouts"] = {"recent": cleaned_recent}
+
+        handled_kinds = {
+            "goal",
+            "plan",
+            "plan-step",
+            "strategy",
+            "preference",
+            "knowledge",
+            "principle",
+            "current",
+            "workout",
         }
+        other_payload: dict[str, list[dict[str, Any]]] = {}
+        for kind, items in by_kind.items():
+            if kind in handled_kinds:
+                continue
+            cleaned = [_clean_entry(item) for item in _sorted(items)]
+            if cleaned:
+                other_payload[kind] = cleaned
+        if other_payload:
+            overview["others"] = other_payload
+
+        # Remove empty containers to keep payload compact
+        if not overview.get("counts_by_kind"):
+            overview.pop("counts_by_kind", None)
+
+        return overview

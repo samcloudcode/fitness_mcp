@@ -110,7 +110,63 @@ def test_get_overview_groups_data(session_and_user) -> None:
     overview = crud.get_overview(session, user_id)
 
     assert overview["counts_by_kind"]["goal"] == 1
+    assert overview["goals"]["active"][0]["key"] == "5k-pr"
     assert overview["plans"]["active"] and overview["plans"]["active"][0]["key"] == "base-build"
     steps = overview["plans"]["steps_by_plan"].get("base-build")
     assert steps and steps[0]["key"] == "week-1"
     assert overview["workouts"]["recent"]
+
+
+def test_bulk_upsert_items(session_and_user) -> None:
+    session, user_id = session_and_user
+
+    created = crud.bulk_upsert_items(
+        session,
+        user_id,
+        [
+            {
+                "kind": "goal",
+                "key": "bulk-goal",
+                "content": "Improve squat technique",
+                "status": "active",
+                "priority": 1,
+                "attrs": {"focus": "mobility"},
+            },
+            {
+                "kind": "plan",
+                "key": "bulk-plan",
+                "content": "Weekly strength split",
+                "tags": "strength",
+            },
+        ],
+    )
+
+    assert {item["key"] for item in created} == {"bulk-goal", "bulk-plan"}
+
+    updated = crud.bulk_upsert_items(
+        session,
+        user_id,
+        [
+            {
+                "kind": "goal",
+                "key": "bulk-goal",
+                "content": "Refine squat depth",
+                "status": "paused",
+            },
+            {
+                "kind": "plan",
+                "key": "bulk-plan",
+                "content": "Weekly strength split",
+                "priority": 3,
+            },
+        ],
+    )
+
+    goal = next(item for item in updated if item["key"] == "bulk-goal")
+    plan = next(item for item in updated if item["key"] == "bulk-plan")
+
+    assert goal["status"] == "paused"
+    assert plan["priority"] == 3
+
+    goals = crud.list_items(session, user_id, kind="goal")
+    assert goals and goals[0]["status"] == "paused"
