@@ -55,9 +55,11 @@ workout (session)      → log_event(kind='workout', parent_key='squat-progressi
 ### Critical Rules
 1. **Update, Never Duplicate**: Items with same `(user_id, kind, key)` → use `upsert_item()` to update
 2. **Context First**: Call `get_overview()` before major decisions
-3. **Comprehensive Logging**: Include RPE, sets, reps, weights in workout attrs
-4. **Preserve Attrs**: When updating events, spread existing attrs: `{...event['attrs'], new_field: value}`
-5. **Consolidate Knowledge**: Combine related concepts into single entries, don't fragment
+3. **Archive, Don't Delete**: Use `status='archived'` instead of deleting (preserves history)
+4. **Bulk Operations**: For multiple items, update each with `upsert_item()` in a loop
+5. **Comprehensive Logging**: Include RPE, sets, reps, weights in workout attrs
+6. **Preserve Attrs**: When updating events, spread existing attrs: `{...event['attrs'], new_field: value}`
+7. **Consolidate Knowledge**: Combine related concepts into single entries, don't fragment
 
 ### Parameter Types (CRITICAL!)
 
@@ -98,6 +100,62 @@ upsert_item(
 - `tags`: String (e.g., `'strength,lower-body'`)
 - `occurred_at`: ISO datetime string (e.g., `'2025-10-05T18:30:00Z'`)
 - `due_date`: ISO date string (e.g., `'2025-12-01'`)
+
+### Bulk Operations & Archiving
+
+**When user says "delete all X" or "remove all Y":**
+```python
+# ✅ BEST - Use archive_items tool (one call, preserves history)
+archive_items(kind='preference', status='active')
+# Returns: {'archived_count': 5, 'archived_keys': [...]}
+
+# ✅ ALSO CORRECT - Manual loop (more control)
+items = list_items(kind='preference', limit=100)
+for item in items:
+    upsert_item(
+        kind='preference',
+        key=item['key'],
+        content=item['content'],
+        status='archived'  # This hides from overview but keeps data
+    )
+
+# ❌ AVOID - Permanent deletion (data loss)
+for item in items:
+    delete_item(kind='preference', key=item['key'])  # Gone forever!
+```
+
+**Archive vs Delete decision tree:**
+- 📦 **Archive** (recommended): Outdated goals, old plans, changed preferences
+- 🗑️ **Delete**: Duplicate entries, test data, truly wrong information
+
+**Bulk archive pattern:**
+```python
+# User: "I don't want any of my old preferences anymore"
+preferences = list_items(kind='preference', status='active')
+for pref in preferences:
+    upsert_item(
+        kind=pref['kind'],
+        key=pref['key'],
+        content=pref['content'],
+        status='archived'
+    )
+# Overview now won't show archived items
+```
+
+**Selective bulk operations:**
+```python
+# User: "Archive all my old goals from last year"
+goals = list_items(kind='goal', status='active')
+for goal in goals:
+    # Check if should archive (e.g., by due_date or content)
+    if should_archive(goal):
+        upsert_item(
+            kind='goal',
+            key=goal['key'],
+            content=goal['content'],
+            status='archived'
+        )
+```
 
 ### Common Patterns
 

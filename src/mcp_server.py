@@ -192,6 +192,70 @@ def delete_item(kind: Literal['goal','plan','plan-step','strategy','preference',
 
 
 @mcp.tool
+def archive_items(
+    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'],
+    status: Optional[str] = 'active',
+    tag_contains: Optional[str] = None,
+    parent_key: Optional[str] = None
+) -> dict:
+    """Archive multiple items at once (sets status='archived').
+
+    This is safer than deleting - archived items are hidden from overview but preserved.
+    Use this when user wants to "remove" or "delete all" items of a type.
+
+    Args:
+        kind: Category of items to archive
+        status: Filter items by current status (default: 'active')
+        tag_contains: Optional filter by tag substring
+        parent_key: Optional filter by parent item
+
+    Returns:
+        Dict with count of archived items and list of keys archived
+
+    Examples:
+        # Archive all active preferences
+        archive_items(kind='preference', status='active')
+
+        # Archive specific tagged goals
+        archive_items(kind='goal', tag_contains='2024')
+    """
+    user_id = _get_user_id()
+    with get_session() as session:
+        # Get items to archive
+        items = crud.list_items(
+            session, user_id,
+            kind=kind,
+            status=status,
+            tag_contains=tag_contains,
+            parent_key=parent_key,
+            limit=1000
+        )
+
+        archived_keys = []
+        for item in items:
+            if item['key']:  # Only archive items with keys
+                crud.upsert_item(
+                    session, user_id,
+                    kind=kind,
+                    key=item['key'],
+                    content=item['content'],
+                    priority=item.get('priority'),
+                    status='archived',
+                    tags=item.get('tags'),
+                    parent_key=item.get('parent_key'),
+                    due_date=item.get('due_date'),
+                    attrs=item.get('attrs', {})
+                )
+                archived_keys.append(item['key'])
+
+        return {
+            'archived_count': len(archived_keys),
+            'archived_keys': archived_keys,
+            'kind': kind
+        }
+
+
+@mcp.tool
 def list_items(
     kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'],
     status: Optional[str] = None,
@@ -567,7 +631,7 @@ def main():
     """Main entry point for the MCP server"""
     # Log startup and initialization
     with logfire.span('mcp server startup'):
-        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','list_items','log_event','list_events','update_event','delete_event','search_entries','get_overview','get_started','describe_conventions'])
+        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','archive_items','list_items','log_event','list_events','update_event','delete_event','search_entries','get_overview','get_started','describe_conventions'])
         logfire.info('logfire configured', environment=os.getenv('ENVIRONMENT', 'development'))
         logfire.info('database connection initialized')
 
