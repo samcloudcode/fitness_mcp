@@ -78,7 +78,7 @@ def upsert_item(
     kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'],
     key: str,
     content: str,
-    priority: Optional[int] = None,
+    priority: Optional[int | str] = None,
     status: Optional[str] = None,
     tags: Optional[str] = None,
     parent_key: Optional[str] = None,
@@ -94,7 +94,7 @@ def upsert_item(
         kind: Category of item (goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, workout-plan, metric, note, issue)
         key: Unique slug identifier (lowercase alphanumeric with hyphens, max 64 chars, e.g., 'run-5k-goal')
         content: Main content/description (string)
-        priority: Optional priority integer 1 (highest) to 5 (lowest). Use integer not string.
+        priority: Optional priority 1 (highest) to 5 (lowest). Accepts int or string (MCP client sometimes sends strings).
         status: Optional status string (active, paused, achieved, archived)
         tags: Optional space-separated tags string (e.g., 'running cardio')
         parent_key: Optional reference to parent item (e.g., plan-step refers to a plan)
@@ -125,12 +125,27 @@ def upsert_item(
         )
     """
     user_id = _get_user_id()
+
+    # Coerce priority to int if provided as string (MCP client bug workaround)
+    priority_int: Optional[int] = None
+    if priority is not None:
+        try:
+            priority_int = int(priority) if isinstance(priority, str) else priority
+            # Validate range (1-5)
+            if not (1 <= priority_int <= 5):
+                logfire.warn('priority out of range, using default', priority=priority_int)
+                priority_int = None
+        except (ValueError, TypeError):
+            logfire.warn('invalid priority value, using default', priority=priority)
+            priority_int = None
+
     parsed_due: Optional[date] = None
     if due_date:
         try:
             parsed_due = date.fromisoformat(due_date)
         except Exception:
             parsed_due = None
+
     with get_session() as session:
         return crud.upsert_item(
             session,
@@ -138,7 +153,7 @@ def upsert_item(
             kind=kind,
             key=key,
             content=content,
-            priority=priority,
+            priority=priority_int,
             status=status,
             tags=tags,
             parent_key=parent_key,

@@ -185,14 +185,14 @@ upsert_item(
 **Critical attrs troubleshooting rules:**
 1. **Don't retry with different attrs formatting** - if it fails once, it will likely fail again
 2. **Retry immediately WITHOUT attrs** - content is what matters, attrs are supplementary
-3. **Inform the user briefly** - "Saved the principle but couldn't include structured metadata"
+3. **Inform the user briefly** - "Saved successfully (worked around validation issue)"
 4. **Move on** - don't waste multiple attempts on attrs validation
-5. **Max 1 retry with attrs** - if first attempt with attrs fails, drop attrs and succeed
+5. **Max 1 retry** - if first attempt with attrs fails, drop attrs and succeed
 
 **Why attrs validation fails:**
-- MCP client issue (not backend) - LLMs sometimes send malformed parameters
-- Complex nested structures or arrays may hit client validation limits
+- MCP client issue (not backend) - complex nested structures may hit client validation limits
 - Error message is misleading - backend accepts any valid JSON, but client rejects before it reaches backend
+- **Note**: `priority` parameter now accepts both int and string, so that specific issue is fixed
 
 **attrs best practices:**
 - Simpler is better: basic strings, numbers, booleans are most reliable
