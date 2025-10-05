@@ -59,7 +59,17 @@ workout (session)      → log_event(kind='workout', parent_key='squat-progressi
 4. **Preserve Attrs**: When updating events, spread existing attrs: `{...event['attrs'], new_field: value}`
 5. **Consolidate Knowledge**: Combine related concepts into single entries, don't fragment
 
-### Parameter Types (IMPORTANT!)
+### Parameter Types (CRITICAL!)
+
+**NEVER use backticks ` for strings - use single ' or double " quotes:**
+```python
+# ✅ CORRECT - proper string quotes
+delete_item(kind='preference', key='calisthenics-preference')
+delete_item(kind="preference", key="calisthenics-preference")
+
+# ❌ WRONG - backticks cause errors!
+delete_item(kind=`preference`, key=`calisthenics-preference`)  # FAILS!
+```
 
 **attrs must be a dict/object, NOT a string:**
 ```python
@@ -80,9 +90,9 @@ upsert_item(
 )
 ```
 
-**Other parameter types:**
-- `kind`: String literal (e.g., `'goal'`, `'workout'`)
-- `key`: String (e.g., `'bench-225'`, `'week-1'`)
+**Parameter types:**
+- `kind`: String with ' or " (e.g., `'goal'`, `"workout"`) - NEVER backticks!
+- `key`: String with ' or " (e.g., `'bench-225'`, `"week-1"`) - NEVER backticks!
 - `content`: String (e.g., `'Bench 225lbs for 5 reps'`)
 - `priority`: Integer 1-5 (e.g., `1` not `'1'`)
 - `tags`: String (e.g., `'strength,lower-body'`)
