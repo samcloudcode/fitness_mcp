@@ -85,19 +85,44 @@ def upsert_item(
     due_date: Optional[str] = None,  # ISO date YYYY-MM-DD
     attrs: Optional[Dict[str, Any]] = None,
 ) -> dict:
-    """Upsert a durable item by kind+key.
+    """Create or update a durable item by kind+key.
+
+    Use this to store permanent data like goals, plans, preferences, or knowledge that needs to persist.
+    Items with the same kind+key will be updated. For time-stamped events (workouts, metrics), use log_event instead.
 
     Args:
-    - kind: one of goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, metric, note
-    - key: slug `^[a-z0-9-]{1,64}$`
-    - content: short free text payload
-    - priority: 1 (highest) … 5 (lowest)
-    - status: e.g., active|paused|achieved|archived
-    - due_date: ISO date `YYYY-MM-DD`
-    - attrs: small object for extras (e.g., {"distance_km":5})
+        kind: Category of item (goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, metric, note)
+        key: Unique slug identifier (lowercase alphanumeric with hyphens, max 64 chars, e.g., 'run-5k-goal')
+        content: Main content/description (string)
+        priority: Optional priority integer 1 (highest) to 5 (lowest). Use integer not string.
+        status: Optional status string (active, paused, achieved, archived)
+        tags: Optional space-separated tags string (e.g., 'running cardio')
+        parent_key: Optional reference to parent item (e.g., plan-step refers to a plan)
+        due_date: Optional ISO date string YYYY-MM-DD (e.g., '2025-12-01')
+        attrs: Optional dict object (NOT a JSON string!) for structured data.
+               Example: {"distance_km": 5, "target_reps": 10}
+               WRONG: '{"distance_km": 5}' - don't stringify!
 
-    Example:
-    upsert_item(kind='knowledge', key='knee-health-best-practices', content='Bullet points...')
+    Returns:
+        Complete item with id, user_id, kind, key, content, timestamps, and all fields
+
+    Examples:
+        # Basic item
+        upsert_item(
+            kind='goal',
+            key='bench-225',
+            content='Bench press 225lbs for 5 reps',
+            priority=1,
+            status='active'
+        )
+
+        # With attrs dict (note: dict object, not string!)
+        upsert_item(
+            kind='plan-step',
+            key='week-1',
+            content='Week 1: Build base',
+            attrs={'distance_km': 20, 'num_runs': 4}
+        )
     """
     user_id = _get_user_id()
     parsed_due: Optional[date] = None
@@ -124,10 +149,20 @@ def upsert_item(
 
 @mcp.tool
 def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'], key: str) -> Optional[dict]:
-    """Get a durable item by kind+key.
+    """Retrieve a specific durable item by kind+key.
+
+    Use this to fetch the current state of a known item. Returns None if not found.
+    For discovering items, use list_items or search_entries instead.
+
+    Args:
+        kind: Category of item
+        key: Unique slug identifier
+
+    Returns:
+        Item dict with all fields, or None if not found
 
     Example:
-    get_item(kind='plan', key='running-progression')
+        get_item(kind='plan', key='running-progression')
     """
     user_id = _get_user_id()
     with get_session() as session:
@@ -136,10 +171,20 @@ def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','kn
 
 @mcp.tool
 def delete_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'], key: str) -> bool:
-    """Delete a durable item by kind+key.
+    """Permanently delete a durable item by kind+key.
+
+    Use this to remove items that are no longer needed. Consider using status='archived'
+    in upsert_item instead to keep historical data. This operation cannot be undone.
+
+    Args:
+        kind: Category of item
+        key: Unique slug identifier
+
+    Returns:
+        True if item was deleted, False if not found
 
     Example:
-    delete_item(kind='preference', key='supersets')
+        delete_item(kind='preference', key='supersets')
     """
     user_id = _get_user_id()
     with get_session() as session:
@@ -154,10 +199,26 @@ def list_items(
     parent_key: Optional[str] = None,
     limit: int = 100
 ) -> list[dict]:
-    """List durable items (up to limit).
+    """List durable items with optional filtering (up to limit).
+
+    Use this to browse items of a specific kind, optionally filtered by status, tags, or parent.
+    Results are sorted by priority (ascending), then updated_at (descending).
+    For text-based search, use search_entries instead.
+
+    Args:
+        kind: Category of items to list
+        status: Optional filter by status (e.g., 'active', 'achieved')
+        tag_contains: Optional filter by tag substring (case-insensitive)
+        parent_key: Optional filter by parent item key
+        limit: Maximum number of items to return (default 100)
+
+    Returns:
+        List of items, each containing id, kind, key, content, status, priority, tags,
+        created_at, updated_at, due_date, and attrs
 
     Example:
-    list_items(kind='plan', status='active', limit=20)
+        list_items(kind='plan', status='active', limit=20)
+        list_items(kind='plan-step', parent_key='running-progression')
     """
     user_id = _get_user_id()
     with get_session() as session:
@@ -173,14 +234,45 @@ def log_event(
     parent_key: Optional[str] = None,
     attrs: Optional[Dict[str, Any]] = None
 ) -> dict:
-    """Log an event-like entry (no key).
+    """Log a time-stamped event (no key, creates new entry each time).
+
+    Use this for recording events that happen at a specific time (workouts, measurements, notes).
+    Unlike upsert_item, this always creates a new entry. Use for historical tracking and timelines.
 
     Args:
-    - occurred_at: ISO 8601 `YYYY-MM-DDTHH:MM:SS[Z]`
-    - attrs: small object (e.g., {"distance_km":5})
+        kind: Event type (workout, metric, note)
+        content: Description of the event (string)
+        occurred_at: Optional ISO 8601 timestamp string (YYYY-MM-DDTHH:MM:SS[Z]). Defaults to current time if not provided.
+        tags: Optional space-separated tags string (e.g., 'running cardio morning')
+        parent_key: Optional reference to related item (e.g., workout linked to a plan)
+        attrs: Optional dict object (NOT a JSON string!) for structured data.
+               Example: {"distance_km": 5, "duration_min": 25, "avg_hr": 145}
+               WRONG: '{"distance_km": 5}' - don't stringify!
 
-    Example:
-    log_event(kind='workout', content='5k in 25m', occurred_at='2025-10-01T07:30:00Z')
+    Returns:
+        Created event with id, content, occurred_at, and all fields
+
+    Examples:
+        # Workout with comprehensive attrs
+        log_event(
+            kind='workout',
+            content='Lower body: Squat 5x5@245 (RPE 8)',
+            occurred_at='2025-10-05T18:30:00Z',
+            tags='strength lower-body',
+            attrs={
+                'exercises': [
+                    {'name': 'Squat', 'sets': 5, 'reps': 5, 'weight_lbs': 245, 'rpe': 8}
+                ],
+                'duration_min': 45
+            }
+        )
+
+        # Simple metric
+        log_event(
+            kind='metric',
+            content='Morning weigh-in',
+            attrs={'weight_lbs': 180.5}
+        )
     """
     user_id = _get_user_id()
     parsed_time: Optional[datetime] = None
@@ -202,10 +294,26 @@ def list_events(
     parent_key: Optional[str] = None,
     limit: int = 100
 ) -> list[dict]:
-    """List recent events (up to limit).
+    """List time-stamped events with optional filtering (up to limit).
+
+    Use this to retrieve historical events (workouts, metrics, notes) within a time range.
+    Results are sorted by occurred_at (descending), showing most recent first.
+
+    Args:
+        kind: Optional event type filter (workout, metric, note). If None, returns all event types.
+        start: Optional ISO 8601 start timestamp (inclusive)
+        end: Optional ISO 8601 end timestamp (inclusive)
+        tag_contains: Optional filter by tag substring (case-insensitive)
+        parent_key: Optional filter by parent item key
+        limit: Maximum number of events to return (default 100)
+
+    Returns:
+        List of events, each containing id, ref (short id), kind, content, occurred_at,
+        tags, and attrs
 
     Example:
-    list_events(kind='workout', start='2025-09-01T00:00:00Z', end='2025-10-01T00:00:00Z')
+        list_events(kind='workout', start='2025-09-01T00:00:00Z', end='2025-10-01T00:00:00Z')
+        list_events(kind='metric', tag_contains='weight', limit=30)
     """
     user_id = _get_user_id()
     start_dt = None
@@ -223,11 +331,105 @@ def list_events(
 
 
 @mcp.tool
-def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note']] = None, limit: int = 100) -> list[dict]:
-    """Full-text search across entries.
+def update_event(
+    event_id: str,
+    content: Optional[str] = None,
+    occurred_at: Optional[str] = None,
+    tags: Optional[str] = None,
+    parent_key: Optional[str] = None,
+    attrs: Optional[Dict[str, Any]] = None
+) -> Optional[dict]:
+    """Update an existing event by ID. Only provided fields will be updated.
+
+    Use this to correct mistakes in logged workouts, add missing information, or update details.
+    Events are identified by their UUID (the 'id' field returned from log_event or list_events).
+
+    Args:
+        event_id: UUID of the event to update (from event's 'id' field)
+        content: Updated content text (optional)
+        occurred_at: Updated ISO datetime (optional)
+        tags: Updated tags (optional)
+        parent_key: Updated parent reference (optional)
+        attrs: Updated attributes dict (optional, replaces entire attrs object)
+
+    Returns:
+        Updated event dict if found, None if event doesn't exist
 
     Example:
-    search_entries(query='knee health', kind='knowledge')
+        # First, get the event ID from a recent workout
+        events = list_events(kind='workout', limit=1)
+        event_id = events[0]['id']
+
+        # Update to add missing RPE data
+        update_event(
+            event_id=event_id,
+            attrs={'exercises': [...], 'rpe': 8, 'notes': 'Felt stronger today'}
+        )
+    """
+    user_id = _get_user_id()
+    parsed_time = None
+    if occurred_at:
+        try:
+            parsed_time = datetime.fromisoformat(occurred_at)
+        except Exception:
+            parsed_time = None
+    with get_session() as session:
+        return crud.update_event(
+            session,
+            user_id,
+            event_id=event_id,
+            content=content,
+            occurred_at=parsed_time,
+            tags=tags,
+            parent_key=parent_key,
+            attrs=attrs
+        )
+
+
+@mcp.tool
+def delete_event(event_id: str) -> bool:
+    """Delete an event by ID.
+
+    Use this to remove incorrectly logged events or duplicate entries.
+    Cannot be undone - use with caution.
+
+    Args:
+        event_id: UUID of the event to delete (from event's 'id' field)
+
+    Returns:
+        True if event was deleted, False if not found
+
+    Example:
+        # Delete a mistakenly logged workout
+        events = list_events(kind='workout', limit=5)
+        duplicate_id = events[2]['id']
+        delete_event(event_id=duplicate_id)
+    """
+    user_id = _get_user_id()
+    with get_session() as session:
+        return crud.delete_event(session, user_id, event_id=event_id)
+
+
+@mcp.tool
+def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note']] = None, limit: int = 100) -> list[dict]:
+    """Full-text search across all entries (items and events).
+
+    Use this to find entries by content when you don't know the exact key or want to discover
+    related information. Searches both key and content fields using PostgreSQL full-text search.
+    Results are sorted by relevance and recency.
+
+    Args:
+        query: Search terms (e.g., 'knee health', 'running progression')
+        kind: Optional filter by specific kind
+        limit: Maximum number of results to return (default 100)
+
+    Returns:
+        List of matching entries (both items with keys and events), each containing
+        all fields sorted by updated_at (descending)
+
+    Example:
+        search_entries(query='knee health', kind='knowledge')
+        search_entries(query='running', limit=50)
     """
     user_id = _get_user_id()
     with get_session() as session:
@@ -235,11 +437,76 @@ def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step',
 
 
 @mcp.tool
-def get_overview() -> dict:
-    """Return an organized overview for the current user.
+def get_started() -> dict:
+    """Get a quick start guide with common workflows and examples.
+
+    Use this when first learning the server or to remind yourself of common patterns.
+    Returns example commands and recommended workflows for typical use cases.
+
+    Returns:
+        Guide containing:
+        - quick_start: Step-by-step first commands to try
+        - common_workflows: Typical patterns for different use cases
+        - tool_guide: When to use each tool
+        - see_also: References to other helpful tools
 
     Example:
-    get_overview()
+        get_started()
+    """
+    return {
+        "quick_start": {
+            "1_see_whats_stored": "get_overview() - Start here to see all your data",
+            "2_add_a_goal": "upsert_item(kind='goal', key='run-5k', content='Run 5K under 25 minutes', status='active')",
+            "3_log_workout": "log_event(kind='workout', content='3km easy run', occurred_at='2025-10-05T07:00:00Z', attrs={'distance_km': 3})",
+            "4_search": "search_entries(query='running') - Find anything related to running"
+        },
+        "common_workflows": {
+            "goal_tracking": "1. upsert_item(kind='goal') → 2. upsert_item(kind='plan') → 3. log_event(kind='workout') → 4. get_overview()",
+            "knowledge_base": "1. upsert_item(kind='knowledge') → 2. search_entries(query='...') → 3. get_item(kind='knowledge', key='...')",
+            "workout_logging": "1. log_event(kind='workout', attrs={...}) → 2. list_events(kind='workout', start='...', end='...') → 3. Analyze progress",
+            "plan_with_steps": "1. upsert_item(kind='plan', key='plan-key') → 2. upsert_item(kind='plan-step', parent_key='plan-key', key='step-1') → 3. get_overview()"
+        },
+        "tool_guide": {
+            "when_to_upsert_item": "For durable data that needs a memorable key (goals, plans, knowledge, preferences)",
+            "when_to_log_event": "For timestamped occurrences that should create new entries each time (workouts, measurements)",
+            "when_to_get_overview": "At start of conversation or to see the big picture",
+            "when_to_search_entries": "When looking for content but don't know the exact key",
+            "when_to_list_items": "When browsing items of a specific kind with filters",
+            "when_to_list_events": "When reviewing historical events in a time range"
+        },
+        "see_also": {
+            "conventions": "describe_conventions() - Learn about kinds, key formats, and attribute patterns",
+            "overview": "get_overview() - See everything that's stored"
+        }
+    }
+
+
+@mcp.tool
+def get_overview() -> dict:
+    """Get a clean, organized overview of all user data - start here!
+
+    Returns a minimal, agent-friendly structure with only essential fields. Items show just
+    their key and content (timestamps removed for clarity). Each entry includes its key making
+    it easy to update with upsert_item(kind=..., key=...).
+
+    Returns:
+        Organized structure (only non-empty sections shown):
+        - strategies: {long_term: {...}, short_term: {...}}
+        - goals: {active: [...], achieved: [...]}
+        - plans: {active: [...], steps: {plan-key: [...]}}
+        - current: [...]  (current state/metrics)
+        - preferences: [...]  (user preferences)
+        - knowledge: [...]  (learnings and insights)
+        - principles: [...]  (training principles)
+        - recent_workouts: [...]  (last 10)
+        - recent_metrics: [...]  (last 10)
+        - recent_notes: [...]  (last 5)
+
+    Example:
+        overview = get_overview()
+        # Update a goal you see in the overview
+        goal = overview['goals']['active'][0]
+        upsert_item(kind='goal', key=goal['key'], content='Updated content')
     """
     user_id = _get_user_id()
     with get_session() as session:
@@ -248,10 +515,23 @@ def get_overview() -> dict:
 
 @mcp.tool
 def describe_conventions() -> dict:
-    """Describe allowed kinds, key conventions, date formats, and attr hints.
+    """Get metadata about allowed kinds, key formats, date formats, and attribute conventions.
+
+    Use this to understand the schema, validation rules, and recommended patterns for this server.
+    Helpful for understanding what values are valid for kinds, how to format keys, and what
+    attributes are recommended for each kind.
+
+    Returns:
+        Dictionary containing:
+        - kinds: List of all allowed kind values
+        - key_regex: Pattern that keys must match
+        - date_formats: Expected date and datetime formats
+        - defaults: Default values (limit, priority range)
+        - attrs_hints: Recommended attributes for each kind
+        - examples: Example usage for main tools
 
     Example:
-    describe_conventions()
+        describe_conventions()
     """
     kinds = ['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note']
     return {
@@ -287,7 +567,7 @@ def main():
     """Main entry point for the MCP server"""
     # Log startup and initialization
     with logfire.span('mcp server startup'):
-        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','list_items','log_event','list_events','search_entries','get_overview','describe_conventions'])
+        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','list_items','log_event','list_events','update_event','delete_event','search_entries','get_overview','get_started','describe_conventions'])
         logfire.info('logfire configured', environment=os.getenv('ENVIRONMENT', 'development'))
         logfire.info('database connection initialized')
 

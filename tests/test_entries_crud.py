@@ -109,12 +109,12 @@ def test_get_overview_groups_data(session_and_user) -> None:
 
     overview = crud.get_overview(session, user_id)
 
-    assert overview["counts_by_kind"]["goal"] == 1
+    # Test new clean format
     assert overview["goals"]["active"][0]["key"] == "5k-pr"
-    assert overview["plans"]["active"] and overview["plans"]["active"][0]["key"] == "base-build"
-    steps = overview["plans"]["steps_by_plan"].get("base-build")
-    assert steps and steps[0]["key"] == "week-1"
-    assert overview["workouts"]["recent"]
+    assert overview["plans"]["active"][0]["key"] == "base-build"
+    assert overview["plans"]["steps"]["base-build"][0]["key"] == "week-1"
+    assert overview["recent_workouts"]
+    assert len(overview["recent_workouts"]) == 1
 
 
 def test_bulk_upsert_items(session_and_user) -> None:
