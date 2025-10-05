@@ -509,10 +509,11 @@ def report_issue(
     context: Optional[str] = None,
     tags: Optional[str] = None
 ) -> dict:
-    """Report a backend issue, bug, or feature request (developer use only).
+    """Report a backend issue, bug, or feature request.
 
-    Use this to track backend issues, bugs, or feature requests. Issues are stored separately
-    from fitness data and won't appear in overview or general lists.
+    Use this to report bugs, request features, or suggest enhancements to the fitness tracking system.
+    Issues are stored separately from fitness data and won't clutter your overview or workout history.
+    Developers will review and address reported issues.
 
     Args:
         title: Short title/summary (becomes the key as a slug)
@@ -768,8 +769,39 @@ def describe_conventions() -> dict:
             'workout': {'distance_km': 'number', 'duration_min': 'number', 'sets': 'array of {ex,reps,weight,rpe?}'},
             'workout-plan': {'exercises': 'array of {name,sets,reps,weight}', 'notes': 'string'},
             'current': {'numeric_value': 'number', 'unit': 'string'},
-            'goal': {'target_text': 'string'},
+            'goal': {
+                'baseline': {'value': 'string', 'date': 'YYYY-MM-DD', 'notes': 'string (optional)'},
+                'target': {'value': 'string', 'date': 'YYYY-MM-DD'}
+            },
+            'plan': {
+                'start_date': 'YYYY-MM-DD (enables temporal context in overview)',
+                'duration_weeks': 'number (enables temporal context in overview)',
+                'deload_week': 'number (optional)'
+            },
+            'knowledge': {
+                'affected_exercises': 'array of strings (for contraindications)',
+                'safe_alternatives': 'array of strings (for contraindications)',
+                'retest_date': 'YYYY-MM-DD (for injury tracking)',
+                'severity': 'string (for contraindications)'
+            },
             'issue': {'issue_type': 'bug|feature|enhancement', 'severity': 'critical|high|medium|low', 'title': 'string'},
+        },
+        'temporal_context': {
+            'description': 'Plans with start_date and duration_weeks in attrs will show computed temporal context in overview',
+            'computed_fields': ['current_week', 'total_weeks', 'weeks_remaining', 'progress_pct', 'temporal_status'],
+            'example': 'If plan has start_date="2025-09-15" and duration_weeks=5, overview shows current_week=3, progress_pct=60, etc.'
+        },
+        'progress_tracking': {
+            'description': 'Goals with baseline and target in attrs enable progress tracking',
+            'baseline_format': {'value': 'starting performance', 'date': 'when established'},
+            'target_format': {'value': 'goal performance', 'date': 'target date'},
+            'current_progress': 'Derived from recent workout/metric logs, not stored in goal attrs'
+        },
+        'contraindications': {
+            'description': 'Use tags and attrs for injury/limitation tracking',
+            'required_tag': 'contraindication',
+            'status_tags': ['injury-active', 'injury-resolved'],
+            'recommended_attrs': ['affected_exercises (array)', 'safe_alternatives (array)', 'retest_date', 'severity']
         },
         'notes': {
             'issue_kind': 'Developer-only kind for tracking backend issues. Excluded from get_overview() and general fitness workflows. Use report_issue() and list_issues() tools.'

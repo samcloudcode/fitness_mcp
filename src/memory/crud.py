@@ -434,6 +434,50 @@ def search_entries(
         return [_serialize(e) for e in results]
 
 
+def _compute_plan_temporal_context(plan: Entry, today: date) -> dict[str, Any]:
+    """Compute temporal context for a plan based on start_date and duration_weeks."""
+    attrs = plan.attrs or {}
+    start_date_str = attrs.get('start_date')
+    duration_weeks = attrs.get('duration_weeks')
+
+    if not start_date_str or not duration_weeks:
+        return {}
+
+    try:
+        start_date = date.fromisoformat(start_date_str) if isinstance(start_date_str, str) else start_date_str
+        duration_weeks = int(duration_weeks)
+
+        # Calculate days into plan
+        days_elapsed = (today - start_date).days
+
+        # Week numbering: 0-6 days = week 1, 7-13 days = week 2, etc.
+        current_week = (days_elapsed // 7) + 1 if days_elapsed >= 0 else 0
+
+        # Calculate progress
+        total_weeks = duration_weeks
+        weeks_remaining = max(0, total_weeks - current_week + 1)
+        progress_pct = min(100, int((current_week / total_weeks) * 100)) if total_weeks > 0 else 0
+
+        # Determine status
+        if current_week < 1:
+            status = 'pending'
+        elif current_week > total_weeks:
+            status = 'completed'
+        else:
+            status = 'active'
+
+        return {
+            'current_week': current_week,
+            'total_weeks': total_weeks,
+            'weeks_remaining': weeks_remaining,
+            'progress_pct': progress_pct,
+            'days_elapsed': days_elapsed,
+            'temporal_status': status,
+        }
+    except (ValueError, TypeError):
+        return {}
+
+
 def get_overview(session: Session, user_id: str) -> dict:
     """Return clean, organized overview optimized for agent consumption."""
     with logfire.span('get overview', user_id=user_id):
@@ -483,16 +527,24 @@ def get_overview(session: Session, user_id: str) -> dict:
             if goals_section:
                 overview["goals"] = goals_section
 
-        # Plans (grouped by status, with nested steps)
+        # Plans (grouped by status, with nested steps and temporal context)
         plans = by_kind.get("plan", [])
         if plans:
             plan_groups = _group_by_status(plans, default_key="active")
             plans_section: dict[str, Any] = {}
+            today = date.today()
 
             for status, items in plan_groups.items():
-                cleaned = [_clean_entry(item, for_overview=True) for item in _sorted(items)]
-                if cleaned:
-                    plans_section[status] = cleaned
+                cleaned_plans = []
+                for plan in _sorted(items):
+                    plan_data = _clean_entry(plan, for_overview=True)
+                    # Add computed temporal context if plan has start_date and duration_weeks
+                    temporal_ctx = _compute_plan_temporal_context(plan, today)
+                    if temporal_ctx:
+                        plan_data.update(temporal_ctx)
+                    cleaned_plans.append(plan_data)
+                if cleaned_plans:
+                    plans_section[status] = cleaned_plans
 
             # Add plan steps nested by parent
             plan_steps = by_kind.get("plan-step", [])
