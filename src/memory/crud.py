@@ -437,7 +437,7 @@ def search_entries(
 def get_overview(session: Session, user_id: str) -> dict:
     """Return clean, organized overview optimized for agent consumption."""
     with logfire.span('get overview', user_id=user_id):
-        stmt = select(Entry).where(Entry.user_id == user_id)
+        stmt = select(Entry).where(and_(Entry.user_id == user_id, Entry.kind != 'issue'))
         entries = session.execute(stmt).scalars().all()
 
         by_kind: dict[str, list[Entry]] = defaultdict(list)

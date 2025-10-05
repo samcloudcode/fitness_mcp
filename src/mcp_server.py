@@ -75,7 +75,7 @@ def _get_user_id() -> str:
 
 @mcp.tool
 def upsert_item(
-    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'],
+    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'],
     key: str,
     content: str,
     priority: Optional[int] = None,
@@ -91,7 +91,7 @@ def upsert_item(
     Items with the same kind+key will be updated. For time-stamped events (workouts, metrics), use log_event instead.
 
     Args:
-        kind: Category of item (goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, metric, note)
+        kind: Category of item (goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, workout-plan, metric, note, issue)
         key: Unique slug identifier (lowercase alphanumeric with hyphens, max 64 chars, e.g., 'run-5k-goal')
         content: Main content/description (string)
         priority: Optional priority integer 1 (highest) to 5 (lowest). Use integer not string.
@@ -148,7 +148,7 @@ def upsert_item(
 
 
 @mcp.tool
-def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'], key: str) -> Optional[dict]:
+def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'], key: str) -> Optional[dict]:
     """Retrieve a specific durable item by kind+key.
 
     Use this to fetch the current state of a known item. Returns None if not found.
@@ -170,7 +170,7 @@ def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','kn
 
 
 @mcp.tool
-def delete_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'], key: str) -> bool:
+def delete_item(kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'], key: str) -> bool:
     """Permanently delete a durable item by kind+key.
 
     Use this to remove items that are no longer needed. Consider using status='archived'
@@ -193,7 +193,7 @@ def delete_item(kind: Literal['goal','plan','plan-step','strategy','preference',
 
 @mcp.tool
 def archive_items(
-    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'],
+    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'],
     status: Optional[str] = 'active',
     tag_contains: Optional[str] = None,
     parent_key: Optional[str] = None
@@ -257,7 +257,7 @@ def archive_items(
 
 @mcp.tool
 def list_items(
-    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note'],
+    kind: Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue'],
     status: Optional[str] = None,
     tag_contains: Optional[str] = None,
     parent_key: Optional[str] = None,
@@ -475,7 +475,7 @@ def delete_event(event_id: str) -> bool:
 
 
 @mcp.tool
-def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note']] = None, limit: int = 100) -> list[dict]:
+def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note','issue']] = None, limit: int = 100) -> list[dict]:
     """Full-text search across all entries (items and events).
 
     Use this to find entries by content when you don't know the exact key or want to discover
@@ -498,6 +498,129 @@ def search_entries(query: str, kind: Optional[Literal['goal','plan','plan-step',
     user_id = _get_user_id()
     with get_session() as session:
         return crud.search_entries(session, user_id, query=query, kind=kind, limit=limit)
+
+
+@mcp.tool
+def report_issue(
+    title: str,
+    description: str,
+    issue_type: Literal['bug', 'feature', 'enhancement'] = 'bug',
+    severity: Literal['critical', 'high', 'medium', 'low'] = 'medium',
+    context: Optional[str] = None,
+    tags: Optional[str] = None
+) -> dict:
+    """Report a backend issue, bug, or feature request (developer use only).
+
+    Use this to track backend issues, bugs, or feature requests. Issues are stored separately
+    from fitness data and won't appear in overview or general lists.
+
+    Args:
+        title: Short title/summary (becomes the key as a slug)
+        description: Detailed description of the issue or feature request
+        issue_type: Type of issue (bug, feature, enhancement)
+        severity: Severity level (critical, high, medium, low)
+        context: Optional additional context (stack traces, reproduction steps, etc.)
+        tags: Optional space-separated tags (e.g., 'database performance')
+
+    Returns:
+        Created issue with id, key, content, and metadata
+
+    Examples:
+        # Report a bug
+        report_issue(
+            title='Overview times out with large datasets',
+            description='get_overview() times out when user has >500 workouts',
+            issue_type='bug',
+            severity='high',
+            context='Error: psycopg.OperationalError: timeout expired'
+        )
+
+        # Request a feature
+        report_issue(
+            title='Add weekly summary tool',
+            description='Tool to generate weekly workout summary with volume/intensity stats',
+            issue_type='feature',
+            severity='low',
+            tags='analytics reporting'
+        )
+    """
+    user_id = _get_user_id()
+
+    # Convert title to slug key (lowercase, hyphens, no special chars)
+    import re
+    key = re.sub(r'[^a-z0-9-]', '', title.lower().replace(' ', '-'))[:64]
+
+    # Combine description and context
+    content = description
+    if context:
+        content += f"\n\nContext:\n{context}"
+
+    with get_session() as session:
+        return crud.upsert_item(
+            session,
+            user_id,
+            kind='issue',
+            key=key,
+            content=content,
+            priority={'critical': 1, 'high': 2, 'medium': 3, 'low': 4}.get(severity, 3),
+            status='open',
+            tags=f"{issue_type} {severity} {tags or ''}".strip(),
+            attrs={
+                'issue_type': issue_type,
+                'severity': severity,
+                'title': title
+            }
+        )
+
+
+@mcp.tool
+def list_issues(
+    status: Optional[str] = 'open',
+    issue_type: Optional[Literal['bug', 'feature', 'enhancement']] = None,
+    severity: Optional[Literal['critical', 'high', 'medium', 'low']] = None,
+    limit: int = 100
+) -> list[dict]:
+    """List backend issues with optional filtering (developer use only).
+
+    Retrieve issues for review and tracking. Issues are excluded from fitness
+    overview and general searches.
+
+    Args:
+        status: Filter by status (open, in-progress, resolved, wontfix) - default: open
+        issue_type: Optional filter by type (bug, feature, enhancement)
+        severity: Optional filter by severity (critical, high, medium, low)
+        limit: Maximum number of issues to return (default 100)
+
+    Returns:
+        List of issues with all fields, sorted by priority then updated_at
+
+    Examples:
+        # Get open bugs
+        list_issues(status='open', issue_type='bug')
+
+        # Get critical issues
+        list_issues(severity='critical')
+
+        # Get all issues regardless of status
+        list_issues(status=None, limit=200)
+    """
+    user_id = _get_user_id()
+
+    with get_session() as session:
+        issues = crud.list_items(
+            session, user_id,
+            kind='issue',
+            status=status,
+            limit=limit
+        )
+
+        # Filter by issue_type or severity if specified
+        if issue_type:
+            issues = [i for i in issues if i.get('attrs', {}).get('issue_type') == issue_type]
+        if severity:
+            issues = [i for i in issues if i.get('attrs', {}).get('severity') == severity]
+
+        return issues
 
 
 @mcp.tool
@@ -555,6 +678,8 @@ def get_overview() -> dict:
 
     Returns:
         Organized structure (only non-empty sections shown):
+        - current_date: ISO date string (YYYY-MM-DD)
+        - current_day: Day of week (e.g., 'Monday')
         - strategies: {long_term: {...}, short_term: {...}}
         - goals: {active: [...], achieved: [...]}
         - plans: {active: [...], steps: {plan-key: [...]}}
@@ -574,7 +699,35 @@ def get_overview() -> dict:
     """
     user_id = _get_user_id()
     with get_session() as session:
-        return crud.get_overview(session, user_id)
+        result = crud.get_overview(session, user_id)
+        today = date.today()
+        result['current_date'] = today.isoformat()
+        result['current_day'] = today.strftime('%A')
+        return result
+
+
+@mcp.tool
+def get_current_date() -> dict:
+    """Get the current date with day of week.
+
+    Use this when you need the current date for creating timestamps, filtering events,
+    or calculating time-based metrics. This is the canonical source of the current date.
+
+    Returns:
+        Dictionary with:
+        - date: ISO date string (YYYY-MM-DD)
+        - day: Day of week (e.g., 'Monday', 'Tuesday')
+
+    Example:
+        today = get_current_date()
+        # Use in log_event
+        log_event(kind='workout', content='Morning run', occurred_at=f"{today['date']}T07:00:00Z")
+    """
+    today = date.today()
+    return {
+        'date': today.isoformat(),
+        'day': today.strftime('%A')
+    }
 
 
 @mcp.tool
@@ -597,9 +750,11 @@ def describe_conventions() -> dict:
     Example:
         describe_conventions()
     """
-    kinds = ['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','metric','note']
+    kinds = ['goal','plan','plan-step','strategy','preference','knowledge','principle','current','workout','workout-plan','metric','note']
+    developer_kinds = ['issue']
     return {
         'kinds': kinds,
+        'developer_kinds': developer_kinds,
         'key_regex': '^[a-z0-9-]{1,64}$',
         'date_formats': {
             'date': 'YYYY-MM-DD',
@@ -611,8 +766,13 @@ def describe_conventions() -> dict:
         },
         'attrs_hints': {
             'workout': {'distance_km': 'number', 'duration_min': 'number', 'sets': 'array of {ex,reps,weight,rpe?}'},
+            'workout-plan': {'exercises': 'array of {name,sets,reps,weight}', 'notes': 'string'},
             'current': {'numeric_value': 'number', 'unit': 'string'},
             'goal': {'target_text': 'string'},
+            'issue': {'issue_type': 'bug|feature|enhancement', 'severity': 'critical|high|medium|low', 'title': 'string'},
+        },
+        'notes': {
+            'issue_kind': 'Developer-only kind for tracking backend issues. Excluded from get_overview() and general fitness workflows. Use report_issue() and list_issues() tools.'
         },
         'examples': {
             'upsert_item': {
@@ -631,7 +791,7 @@ def main():
     """Main entry point for the MCP server"""
     # Log startup and initialization
     with logfire.span('mcp server startup'):
-        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','archive_items','list_items','log_event','list_events','update_event','delete_event','search_entries','get_overview','get_started','describe_conventions'])
+        logfire.info('starting fitness memory mcp server', tools=['upsert_item','get_item','delete_item','archive_items','list_items','log_event','list_events','update_event','delete_event','search_entries','report_issue','list_issues','get_overview','get_current_date','get_started','describe_conventions'])
         logfire.info('logfire configured', environment=os.getenv('ENVIRONMENT', 'development'))
         logfire.info('database connection initialized')
 

@@ -39,11 +39,69 @@ workout (session)      → log_event(kind='workout', parent_key='squat-progressi
 | `goal` | Specific objectives | `bench-225-lbs`, `run-5k-sub-25min` |
 | `plan` | Training programs | `squat-linear-progression`, `base-building-8wk` |
 | `plan-step` | Weekly prescriptions | `week-1`, `week-2`, `week-3` |
+| `workout-plan` | Planned future workouts | `2025-10-06`, `monday-heavy-squat` |
 | `strategy` | Overarching approach | `long-term`, `short-term` |
 | `preference` | User preferences | `workout-timing`, `equipment-access` |
 | `knowledge` | Learnings & insights | `knee-pain-patterns`, `squat-technique` |
 | `principle` | Training principles | `progressive-overload`, `deload-strategy` |
 | `current` | Current state/metrics | `current-bench-max`, `bodyweight` |
+
+#### Title-Content Alignment for Knowledge Entries
+
+**CRITICAL RULE: Title specificity must match content specificity**
+
+**Generic Title → Generic Content:**
+- ✅ `ankle-mobility-protocols` → Comprehensive guide applicable to any squat/lunge/running context
+- ✅ `progressive-overload-principles` → Universal training concepts
+- ✅ `knee-pain-assessment` → General framework for evaluating knee issues
+
+**Specific Title → Specific Content:**
+- ✅ `user-knee-pain-pattern-oct-2025` → User's specific symptoms and observations
+- ✅ `tuesday-workout-ankle-mobility` → Specific to recurring Tuesday session
+- ✅ `squat-form-check-video-analysis-2025-10-05` → One-time assessment
+
+**Common Mistake - AVOID:**
+```python
+# ❌ WRONG - Title is generic but content is workout-specific
+upsert_item(
+    kind='knowledge',
+    key='ankle-mobility-protocols',  # Sounds universal
+    content='Between HSPU sets do ankle circles. Between Bulgarian split squats do calf raises...'
+    # Problem: Content references specific workout structure, not universal protocol
+)
+```
+
+**Fix Options:**
+```python
+# ✅ Option 1: Make content truly generic (remove workout-specific references)
+upsert_item(
+    kind='knowledge',
+    key='ankle-mobility-protocols',
+    content='Ankle mobility exercises: 1) Ankle circles (10 each direction), 2) Calf raises (15 reps), 3) Ankle rocks (30 sec). Can be used as warmup, between sets, or standalone.'
+)
+
+# ✅ Option 2: Make title specific to match specific content
+upsert_item(
+    kind='knowledge',
+    key='ankle-mobility-tuesday-home-workout',
+    content='Ankle mobility protocol for Tuesday home workout: Between HSPU sets do ankle circles. Between Bulgarian split squats do calf raises...'
+)
+
+# ✅ Option 3: Put workout-specific details in plan-step or workout log attrs
+upsert_item(kind='plan-step', key='week-1', content='...',
+    attrs={'mobility_protocol': 'ankle circles between HSPU, calf raises between split squats'})
+```
+
+**Decision Tree:**
+1. **Is this knowledge workout-specific?** → Put in workout log attrs or plan-step
+2. **Is this a user-specific pattern/observation?** → Title should include "user" or date
+3. **Is this universal/generic principle?** → Title and content both generic, broadly applicable
+
+**Examples:**
+- `ankle-mobility-exercises` (generic) → List of exercises with instructions, applicable anywhere
+- `user-ankle-limitation-2025-10` (specific) → "User has limited dorsiflexion in left ankle, compensates by..."
+- `squat-warmup-protocol` (generic) → Standard warmup sequence for any squat session
+- `tuesday-squat-warmup` (specific) → "On Tuesdays when doing high-bar squats, use this warmup..."
 
 ### Event Kinds (No Key, Use log_event)
 | Kind | Use For | When to Log |
@@ -100,6 +158,46 @@ upsert_item(
 - `tags`: String (e.g., `'strength,lower-body'`)
 - `occurred_at`: ISO datetime string (e.g., `'2025-10-05T18:30:00Z'`)
 - `due_date`: ISO date string (e.g., `'2025-12-01'`)
+- `attrs`: Dict object with any structure (arrays, nested objects allowed)
+
+### Handling attrs Validation Errors
+
+**If `upsert_item()` or `log_event()` fails with attrs validation error:**
+
+```python
+# ❌ First attempt fails with: "not valid under any of the given schemas"
+upsert_item(
+    kind='principle',
+    key='active-recovery',
+    content='Detailed principle text...',
+    attrs={'priority_hierarchy': ['performance', 'quality', 'efficiency']}  # Fails!
+)
+
+# ✅ IMMEDIATELY retry WITHOUT attrs (don't try different attrs formats)
+upsert_item(
+    kind='principle',
+    key='active-recovery',
+    content='Detailed principle text...'  # Drop attrs entirely
+)
+# Then inform user: "Saved successfully - couldn't include metadata but all key info is in the content"
+```
+
+**Critical attrs troubleshooting rules:**
+1. **Don't retry with different attrs formatting** - if it fails once, it will likely fail again
+2. **Retry immediately WITHOUT attrs** - content is what matters, attrs are supplementary
+3. **Inform the user briefly** - "Saved the principle but couldn't include structured metadata"
+4. **Move on** - don't waste multiple attempts on attrs validation
+5. **Max 1 retry with attrs** - if first attempt with attrs fails, drop attrs and succeed
+
+**Why attrs validation fails:**
+- MCP client issue (not backend) - LLMs sometimes send malformed parameters
+- Complex nested structures or arrays may hit client validation limits
+- Error message is misleading - backend accepts any valid JSON, but client rejects before it reaches backend
+
+**attrs best practices:**
+- Simpler is better: basic strings, numbers, booleans are most reliable
+- Put critical data in `content` field, not `attrs`
+- Use attrs for optional structured data that would be nice to have but isn't essential
 
 ### Bulk Operations & Archiving
 
@@ -157,7 +255,7 @@ for goal in goals:
         )
 ```
 
-### Common Patterns
+### Common Patterns & Workflows
 
 **Update existing item:**
 ```python
@@ -180,16 +278,6 @@ log_event(
 ```python
 events = list_events(kind='workout', limit=1)
 update_event(event_id=events[0]['id'], attrs={**events[0]['attrs'], 'rpe': 8})
-```
-
-**Save research findings:**
-```python
-upsert_item(
-    kind='knowledge',
-    key='knee-pain-squatting',
-    content='Evidence-based approach: [details]',
-    tags='injury,knee,research'
-)
 ```
 
 ---
@@ -249,33 +337,7 @@ Events automatically include timestamps and can have `attrs` for structured data
 - A plan needs adjustment → Update the plan content with the revised approach
 - Current metrics change → Update the current entry with new values
 
-**Example of keeping data current:**
-```python
-# User mentions they now prefer evening workouts instead of morning
-# DON'T create a new entry - UPDATE the existing one
-upsert_item(
-    kind='preference',
-    key='workout-timing',
-    content='Prefers evening workouts (6-8pm) due to work schedule. Morning sessions cause rushed feeling.',
-    status='active'
-)
-
-# Later, user says they can now do mornings on weekends
-# UPDATE again with complete information
-upsert_item(
-    kind='preference',
-    key='workout-timing',
-    content='Prefers evening workouts (6-8pm) on weekdays due to work schedule. Weekend mornings (8-10am) work well.',
-    status='active'
-)
-```
-
-**Listen for updates in conversation:**
-- "Actually, I changed my mind about..."
-- "I forgot to mention..."
-- "My goal is now..."
-- "I can't do X anymore because..."
-- "I learned that..."
+**Listen for:** "Actually, I changed my mind...", "I forgot to mention...", "My goal is now...", "I can't do X anymore...", "I learned that..."
 
 ### 2. Planning Hierarchy - Temporal Scope
 
@@ -428,96 +490,20 @@ Best for beginners: focus on hip hinge pattern first with RDLs''',
 
 ### 4. Knowledge Base Maintenance
 
-Your knowledge base should be **clean, current, and actionable**. Follow these practices:
+Your knowledge base should be **clean, current, and actionable**:
 
-#### Consolidation Over Proliferation
-**DON'T create separate entries for related concepts:**
-```python
-# BAD - Fragmented knowledge
-upsert_item(kind='knowledge', key='squat-depth', content='...')
-upsert_item(kind='knowledge', key='squat-stance', content='...')
-upsert_item(kind='knowledge', key='squat-bar-position', content='...')
+**Consolidate related concepts** - Don't fragment knowledge into multiple entries. Combine squat-depth, squat-stance, squat-bar-position into `squat-technique-fundamentals`.
 
-# GOOD - Consolidated knowledge
-upsert_item(
-    kind='knowledge',
-    key='squat-technique-fundamentals',
-    content='''Complete squat technique guide:
+**Update when you learn more** - If you discover new recovery patterns, UPDATE the existing `user-recovery-patterns` entry rather than creating `user-recovery-patterns-v2`.
 
-DEPTH: Hip crease below knee for full ROM benefits
-STANCE: Shoulder-width to slightly wider, toes 15-30° out
-BAR POSITION: High bar (traps) for quad focus, low bar (rear delts) for posterior chain
-BREATHING: Valsalva maneuver (breath hold) for core stability
-COMMON FAULTS: Knees caving, excessive forward lean, heels rising''',
-    tags='squat,technique,fundamentals'
-)
-```
+**Archive strategically:**
+- Goals: Use `status='achieved'` (not archived) to preserve accomplishments
+- Old plans: Use `status='archived'` with attrs noting replacement reason
+- Outdated knowledge: Update content rather than archiving
 
-#### Update When You Learn More
-```python
-# Initial knowledge
-upsert_item(
-    kind='knowledge',
-    key='user-recovery-patterns',
-    content='User recovers well with 48hrs between squat sessions',
-    tags='recovery'
-)
+**Use tags for cross-referencing** - Tags enable search: `tags='injury,shoulder,contraindications'` lets you find all injury-related entries.
 
-# Later, you observe more patterns - UPDATE not create new
-upsert_item(
-    kind='knowledge',
-    key='user-recovery-patterns',
-    content='User recovery patterns: Squats need 48-72hrs. Deadlifts need 72-96hrs. Upper body recovers in 36-48hrs. Sleep quality significantly impacts recovery (7+ hrs optimal). Deload needed every 4th week when volume high.',
-    tags='recovery,periodization'
-)
-```
-
-#### Archive Outdated Information
-```python
-# Goal was achieved or is no longer relevant
-upsert_item(
-    kind='goal',
-    key='first-pullup',
-    content='Achieve first unassisted pullup',
-    status='achieved',  # Not 'archived' - shows accomplishment
-    attrs={'achieved_date': '2025-09-15'}
-)
-
-# Old plan that's been replaced
-upsert_item(
-    kind='plan',
-    key='beginner-full-body',
-    content='3x/week full body routine',
-    status='archived',  # No longer active
-    attrs={'replaced_by': 'upper-lower-split', 'archived_reason': 'progressed to intermediate'}
-)
-```
-
-#### Use Tags for Cross-Referencing
-```python
-# Tags enable powerful searching later
-upsert_item(
-    kind='knowledge',
-    key='shoulder-impingement-exercises',
-    content='Safe exercises during shoulder impingement: face pulls, band pull-aparts, side-lying external rotation. AVOID: overhead press, upright rows, behind-neck movements.',
-    tags='injury,shoulder,exercise-selection,contraindications'
-)
-
-# Later you can search: search_entries(query='shoulder injury')
-```
-
-#### Periodic Review and Cleanup
-Regularly (monthly) review knowledge base:
-```python
-# Get all knowledge items
-knowledge = list_items(kind='knowledge', limit=100)
-
-# Ask yourself for each:
-# - Is this still accurate?
-# - Can this be consolidated with another entry?
-# - Is this specific to user or general principle?
-# - Does this need updating based on new evidence?
-```
+**Review monthly** - Ask: Is this accurate? Can it be consolidated? Does it need updating?
 
 ### 5. Comprehensive Workout Logging
 
@@ -597,35 +583,7 @@ log_event(
 
 #### What Makes a Workout Log Comprehensive
 
-**Minimum viable log:**
-```python
-log_event(
-    kind='workout',
-    content='Upper body: Bench 3x8@185, Rows 3x10@135',
-    occurred_at='2025-10-05T07:00:00Z'
-)
-```
-
-**Good log (recommended):**
-```python
-log_event(
-    kind='workout',
-    content='Upper body strength: Bench 3x8@185 (RPE 7), Rows 3x10@135 (RPE 6), Tricep extensions 3x12',
-    occurred_at='2025-10-05T07:00:00Z',
-    tags='strength,upper-body,push',
-    parent_key='upper-lower-split',
-    attrs={
-        'duration_min': 45,
-        'exercises': [
-            {'name': 'Bench Press', 'sets': 3, 'reps': 8, 'weight_lbs': 185, 'rpe': 7},
-            {'name': 'Barbell Row', 'sets': 3, 'reps': 10, 'weight_lbs': 135, 'rpe': 6},
-            {'name': 'Tricep Extension', 'sets': 3, 'reps': 12, 'weight_lbs': 50, 'rpe': 7}
-        ]
-    }
-)
-```
-
-**Exceptional log (when important context exists):**
+**Comprehensive log example:**
 ```python
 log_event(
     kind='workout',
@@ -642,37 +600,32 @@ log_event(
                 'reps': 5,
                 'weight_lbs': 245,
                 'rpe': 8,
-                'notes': 'Bar speed slowed on final 2 sets. Depth consistent.',
-                'video_recorded': True
+                'notes': 'Bar speed slowed on final 2 sets. Depth consistent.'
             },
             {
                 'name': 'Romanian Deadlift',
                 'sets': 3,
                 'reps': 8,
                 'weight_lbs': 185,
-                'rpe': 7,
-                'tempo': '3-1-1-1'
+                'rpe': 7
             },
             {
                 'name': 'Leg Press',
                 'sets': 3,
                 'reps': 12,
                 'weight_lbs': 270,
-                'rpe': 8,
-                'foot_position': 'high and wide'
+                'rpe': 8
             }
         ],
         'workout_feel': 'strong',
         'sleep_last_night_hrs': 7.5,
         'energy_level': 8,
-        'soreness_pre_workout': 'mild quad DOMS from Tuesday',
-        'nutrition_pre_workout': 'banana and coffee 1hr before',
-        'deviations_from_plan': 'added 5lbs to squat (felt good)',
-        'subjective_difficulty': 'challenging but manageable',
-        'next_session_notes': 'if recovery good, increase to 250lbs next Monday'
+        'soreness_pre_workout': 'mild quad DOMS from Tuesday'
     }
 )
 ```
+
+**Minimum acceptable:** Include occurred_at, content with exercises/weights, and parent_key linking to plan. Add attrs with exercise details when possible.
 
 #### Capturing Important Observations
 
@@ -828,46 +781,7 @@ else:
     upsert_item(kind='goal', key='new-goal-key', content='new goal...')
 ```
 
-## Workflow Examples
-
-### Example 1: User Changes Their Mind About a Goal
-
-**Conversation:**
-```
-User: "I want to run a 5k in under 25 minutes"
-You: [create goal]
-
-[Later in conversation]
-User: "Actually, I think I want to aim for under 23 minutes instead"
-You: [UPDATE the existing goal, don't create a new one]
-```
-
-**Implementation:**
-```python
-# First mention
-upsert_item(
-    kind='goal',
-    key='5k-time-goal',
-    content='Run 5k in under 25 minutes',
-    priority=1,
-    status='active',
-    due_date='2026-01-15',
-    attrs={'target_time_minutes': 25}
-)
-
-# User changes mind - UPDATE same entry
-upsert_item(
-    kind='goal',
-    key='5k-time-goal',  # Same key = update
-    content='Run 5k in under 23 minutes',
-    priority=1,
-    status='active',
-    due_date='2026-01-15',
-    attrs={'target_time_minutes': 23}  # Updated target
-)
-```
-
-### Example 2: Building Comprehensive Training Context
+## Complete Workflow Example: Building Training Context
 
 ```python
 # 1. Long-term vision
@@ -924,123 +838,6 @@ log_event(
 )
 ```
 
-### Example 3: Learning and Applying External Knowledge
-
-**User asks: "My knee hurts when I squat deep, what should I do?"**
-
-```python
-# 1. First, check existing knowledge
-existing = search_entries(query='knee pain squat', kind='knowledge')
-
-# 2. Research if needed (web search, expert sources)
-# [You research knee pain in squats]
-
-# 3. Save what you learn
-upsert_item(
-    kind='knowledge',
-    key='knee-pain-squatting',
-    content='''Knee pain during deep squats - evidence-based approach:
-
-ASSESSMENT:
-- Pain location: front (patella issues) vs sides (meniscus/tracking)
-- When: bottom position vs throughout
-- Pattern: gets worse with sets or constant
-
-MODIFICATIONS:
-1. Reduce depth to pain-free range
-2. Box squats to control depth
-3. Tempo squats (slow eccentric) to build control
-4. Goblet squats for more upright torso
-
-CORRECTIVES:
-- VMO strengthening: terminal knee extensions, Peterson step-ups
-- Ankle mobility: reduces compensatory knee stress
-- Hip mobility: allows better positioning
-
-RED FLAGS:
-- Swelling, locking, giving way → medical evaluation
-- Sharp pain vs dull ache → stop vs modify
-
-PROGRESSION:
-Start with pain-free depth → gradually increase range as strength/control improves
-
-Source: Research + NSCA guidelines''',
-    tags='injury,knee,squat,assessment,rehab'
-)
-
-# 4. Create immediate action plan for user
-upsert_item(
-    kind='plan',
-    key='knee-pain-squat-modification',
-    content='Modified squat protocol: Box squats to parallel for 2 weeks, focus on control. Add VMO work 3x/week. Reassess depth weekly. If pain persists >2 weeks, seek PT evaluation.',
-    status='active',
-    parent_key='short-term',
-    attrs={'duration_weeks': 2, 'reassess_frequency': 'weekly'}
-)
-
-# 5. Note user-specific observation
-upsert_item(
-    kind='knowledge',
-    key='user-knee-pain-pattern',
-    content='User reports anterior knee pain in bottom 3 inches of squat (below parallel). No pain at parallel. Started 2 weeks ago after increasing volume. No swelling or mechanical symptoms.',
-    tags='injury,knee,user-specific'
-)
-```
-
-### Example 4: Knowledge Base Maintenance
-
-**Monthly cleanup routine:**
-
-```python
-# Get all knowledge items
-all_knowledge = list_items(kind='knowledge', limit=100)
-
-# Review and consolidate
-# Found 3 entries about squat technique - combine them:
-
-# OLD entries (conceptual - you'd delete these manually if needed)
-# - squat-depth-guide
-# - squat-stance-width
-# - squat-breathing-technique
-
-# NEW consolidated entry
-upsert_item(
-    kind='knowledge',
-    key='squat-technique-complete',
-    content='''Complete squat technique guide:
-
-SETUP:
-- Stance: Shoulder-width to slightly wider, toes 15-30° out
-- Bar position: High bar (traps) for quads, low bar (rear delts) for posterior
-- Grip: Hands as narrow as shoulder mobility allows
-- Breath: Full breath, brace core (valsalva)
-
-DESCENT:
-- Break at hips and knees simultaneously
-- Knees track over toes (prevent valgus)
-- Maintain neutral spine
-- Control speed (2-3 seconds)
-- Depth: Hip crease below knee for full ROM
-
-ASCENT:
-- Drive through midfoot
-- Keep chest up
-- Knees out throughout
-- Exhale at top or hold to lockout
-
-COMMON FAULTS:
-- Knees caving (strengthen glutes, cue "knees out")
-- Forward lean (improve ankle mobility, core strength)
-- Heel lift (ankle mobility, weight distribution)
-- Buttwink (may need to reduce depth, improve hip mobility)''',
-    tags='squat,technique,coaching,complete-guide'
-)
-
-# Archive outdated entries
-upsert_item(kind='knowledge', key='squat-depth-guide', status='archived')
-upsert_item(kind='knowledge', key='squat-stance-width', status='archived')
-upsert_item(kind='knowledge', key='squat-breathing-technique', status='archived')
-```
 
 ## Advanced Techniques
 
