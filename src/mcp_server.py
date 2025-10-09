@@ -83,7 +83,7 @@ def upsert_item(
     tags: Optional[str] = None,
     parent_key: Optional[str] = None,
     due_date: Optional[str] = None,  # ISO date YYYY-MM-DD
-    attrs: Optional[Dict[str, Any]] = None,
+    attrs: Optional[Dict[str, Any] | str] = None,
 ) -> dict:
     """Create or update a durable item by kind+key.
 
@@ -94,14 +94,14 @@ def upsert_item(
         kind: Category of item (goal, plan, plan-step, strategy, preference, knowledge, principle, current, workout, workout-plan, metric, note, issue)
         key: Unique slug identifier (lowercase alphanumeric with hyphens, max 64 chars, e.g., 'run-5k-goal')
         content: Main content/description (string)
-        priority: Optional priority 1 (highest) to 5 (lowest). Accepts int or string (MCP client sometimes sends strings).
-        status: Optional status string (active, paused, achieved, archived)
-        tags: Optional space-separated tags string (e.g., 'running cardio')
+        priority: Optional priority - accepts any string ("urgent", "high") or int (1, 2, 3). No validation applied.
+        status: Optional status string (active, paused, achieved, archived, draft, planned)
+        tags: Optional comma-separated tags string (e.g., 'running,cardio')
         parent_key: Optional reference to parent item (e.g., plan-step refers to a plan)
         due_date: Optional ISO date string YYYY-MM-DD (e.g., '2025-12-01')
-        attrs: Optional dict object (NOT a JSON string!) for structured data.
-               Example: {"distance_km": 5, "target_reps": 10}
-               WRONG: '{"distance_km": 5}' - don't stringify!
+        attrs: Optional dict for structured data. Accepts dict object or JSON string (will be parsed).
+               Example: {"distance_km": 5, "exercises": [{"name": "Squat", "sets": 5}]}
+               Also accepts: '{"distance_km": 5}' (will be parsed automatically)
 
     Returns:
         Complete item with id, user_id, kind, key, content, timestamps, and all fields
@@ -126,18 +126,19 @@ def upsert_item(
     """
     user_id = _get_user_id()
 
-    # Coerce priority to int if provided as string (MCP client bug workaround)
-    priority_int: Optional[int] = None
-    if priority is not None:
+    # Flexible priority: accept any string or int (no validation)
+    # Users can use "urgent", "high", 1, 2, etc. - whatever works for them
+    priority_value = priority
+
+    # Flexible attrs: if string provided, try parsing as JSON
+    attrs_value = attrs
+    if attrs is not None and isinstance(attrs, str):
         try:
-            priority_int = int(priority) if isinstance(priority, str) else priority
-            # Validate range (1-5)
-            if not (1 <= priority_int <= 5):
-                logfire.warn('priority out of range, using default', priority=priority_int)
-                priority_int = None
-        except (ValueError, TypeError):
-            logfire.warn('invalid priority value, using default', priority=priority)
-            priority_int = None
+            attrs_value = json.loads(attrs)
+            logfire.info('parsed attrs from JSON string', attrs_keys=list(attrs_value.keys()))
+        except json.JSONDecodeError as e:
+            logfire.warn('failed to parse attrs as JSON, using as-is', error=str(e))
+            attrs_value = attrs
 
     parsed_due: Optional[date] = None
     if due_date:
@@ -153,12 +154,12 @@ def upsert_item(
             kind=kind,
             key=key,
             content=content,
-            priority=priority_int,
+            priority=priority_value,
             status=status,
             tags=tags,
             parent_key=parent_key,
             due_date=parsed_due,
-            attrs=attrs,
+            attrs=attrs_value,
         )
 
 
@@ -182,6 +183,44 @@ def get_item(kind: Literal['goal','plan','plan-step','strategy','preference','kn
     user_id = _get_user_id()
     with get_session() as session:
         return crud.get_item(session, user_id, kind=kind, key=key)
+
+
+@mcp.tool
+def get_items_detail(items: List[Dict[str, str]]) -> list[dict]:
+    """Fetch full content for multiple items seen in overview (which shows truncated content).
+
+    Use this after get_overview() to retrieve full content for specific entries you need details on.
+    Overview truncates verbose content to 100 chars - use this tool to get the complete text.
+
+    Args:
+        items: List of dicts with 'kind' and 'key' fields, e.g., [{"kind": "knowledge", "key": "knee-health"}, {"kind": "principle", "key": "progressive-overload"}]
+
+    Returns:
+        List of full item dicts with complete content, status, tags, attrs, timestamps
+
+    Examples:
+        # After seeing truncated knowledge in overview
+        overview = get_overview()
+        # overview['knowledge'][0] = {"key": "knee-health...", "content": "Knee Health Best Practices:..."}
+
+        # Get full content
+        details = get_items_detail([
+            {"kind": "knowledge", "key": "knee-health-best-practices"},
+            {"kind": "principle", "key": "progressive-overload"}
+        ])
+        # details[0]['content'] now has full text, not truncated
+
+        # Or get details for all knowledge at once
+        keys = [{"kind": "knowledge", "key": k["key"]} for k in overview.get("knowledge", [])]
+        all_knowledge = get_items_detail(keys)
+    """
+    user_id = _get_user_id()
+
+    # Convert list of dicts to list of tuples
+    keys = [(item['kind'], item['key']) for item in items]
+
+    with get_session() as session:
+        return crud.get_items_by_keys(session, user_id, keys=keys)
 
 
 @mcp.tool
@@ -416,7 +455,8 @@ def update_event(
     occurred_at: Optional[str] = None,
     tags: Optional[str] = None,
     parent_key: Optional[str] = None,
-    attrs: Optional[Dict[str, Any]] = None
+    attrs: Optional[Dict[str, Any]] = None,
+    replace_attrs: bool = False
 ) -> Optional[dict]:
     """Update an existing event by ID. Only provided fields will be updated.
 
@@ -429,7 +469,8 @@ def update_event(
         occurred_at: Updated ISO datetime (optional)
         tags: Updated tags (optional)
         parent_key: Updated parent reference (optional)
-        attrs: Updated attributes dict (optional, replaces entire attrs object)
+        attrs: Attributes to add/update (optional). By default, merges with existing attrs.
+        replace_attrs: If True, replaces entire attrs object. If False (default), merges new attrs with existing.
 
     Returns:
         Updated event dict if found, None if event doesn't exist
@@ -439,11 +480,12 @@ def update_event(
         events = list_events(kind='workout', limit=1)
         event_id = events[0]['id']
 
-        # Update to add missing RPE data
+        # Update to add missing RPE data (MERGES with existing attrs by default)
         update_event(
             event_id=event_id,
-            attrs={'exercises': [...], 'rpe': 8, 'notes': 'Felt stronger today'}
+            attrs={'rpe': 8, 'notes': 'Felt stronger today'}
         )
+        # No need to spread existing attrs - merging is automatic!
     """
     user_id = _get_user_id()
     parsed_time = None
@@ -461,7 +503,8 @@ def update_event(
             occurred_at=parsed_time,
             tags=tags,
             parent_key=parent_key,
-            attrs=attrs
+            attrs=attrs,
+            replace_attrs=replace_attrs
         )
 
 
@@ -685,37 +728,55 @@ def get_started() -> dict:
 
 
 @mcp.tool
-def get_overview() -> dict:
-    """Get a clean, organized overview of all user data - start here!
+def get_overview(truncate_length: int = 100) -> dict:
+    """Get a scannable overview of all user data with truncated content - start here!
 
-    Returns a minimal, agent-friendly structure with only essential fields. Items show just
-    their key and content (timestamps removed for clarity). Each entry includes its key making
-    it easy to update with upsert_item(kind=..., key=...).
+    Returns all active items but with verbose content truncated for efficient scanning.
+    Use get_items_detail() to fetch full content for specific items you need details on.
+
+    Args:
+        truncate_length: Max characters for verbose content before truncation (default 100).
+                        Higher values = more context, lower values = faster scanning.
+
+    IMPORTANT: Verbose kinds (knowledge, principles, preferences, plan-steps, workouts) show truncated
+    content ending in "..." - this is intentional to reduce context size. Use get_items_detail() to
+    get full text when needed.
 
     Returns:
         Organized structure (only non-empty sections shown):
         - current_date: ISO date string (YYYY-MM-DD)
         - current_day: Day of week (e.g., 'Monday')
-        - strategies: {long_term: {...}, short_term: {...}}
-        - goals: {active: [...], achieved: [...]}
-        - plans: {active: [...], steps: {plan-key: [...]}}
-        - current: [...]  (current state/metrics)
-        - preferences: [...]  (user preferences)
-        - knowledge: [...]  (learnings and insights)
-        - principles: [...]  (training principles)
-        - recent_workouts: [...]  (last 10)
-        - recent_metrics: [...]  (last 10)
-        - recent_notes: [...]  (last 5)
+        - strategies: {long_term: {...}, short_term: {...}} [TRUNCATED]
+        - goals: {active: [...], achieved: [...]} [FULL CONTENT]
+        - plans: {active: [...], steps: {plan-key: [...]}} [FULL for plans, TRUNCATED for steps]
+        - current: [...]  (current state/metrics) [FULL CONTENT]
+        - preferences: [...]  [TRUNCATED - use get_items_detail() for full text]
+        - knowledge: [...]  [TRUNCATED - use get_items_detail() for full text]
+        - principles: [...]  [TRUNCATED - use get_items_detail() for full text]
+        - recent_workouts: [...]  (last 10) [TRUNCATED]
+        - recent_metrics: [...]  (last 10) [FULL CONTENT]
+        - recent_notes: [...]  (last 5) [TRUNCATED]
 
-    Example:
-        overview = get_overview()
-        # Update a goal you see in the overview
-        goal = overview['goals']['active'][0]
-        upsert_item(kind='goal', key=goal['key'], content='Updated content')
+    Workflow:
+        # 1. Get overview (lightweight, truncated)
+        overview = get_overview()  # or get_overview(truncate_length=150) for more preview
+
+        # 2. Scan keys and truncated content
+        # knowledge[0] = {"key": "knee-health-best-practices", "content": "Knee Health Best Practices:\n\nALIGNMENT & TRACKING:\n- Knees track over toes (prevent valgus coll..."}
+
+        # 3. Fetch full details for relevant items
+        details = get_items_detail([
+            {"kind": "knowledge", "key": "knee-health-best-practices"},
+            {"kind": "principle", "key": "progressive-overload"}
+        ])
+        # Now details[0]['content'] has complete text
+
+        # 4. Or use list_items/search_entries for targeted queries
+        knee_knowledge = search_entries(query="knee pain", kind="knowledge", limit=3)
     """
     user_id = _get_user_id()
     with get_session() as session:
-        result = crud.get_overview(session, user_id)
+        result = crud.get_overview(session, user_id, truncate_length=truncate_length)
         today = date.today()
         result['current_date'] = today.isoformat()
         result['current_day'] = today.strftime('%A')
@@ -780,26 +841,109 @@ def describe_conventions() -> dict:
             'limit': 100,
             'priority_range': [1, 5],
         },
-        'attrs_hints': {
-            'workout': {'distance_km': 'number', 'duration_min': 'number', 'sets': 'array of {ex,reps,weight,rpe?}'},
-            'workout-plan': {'exercises': 'array of {name,sets,reps,weight}', 'notes': 'string'},
-            'current': {'numeric_value': 'number', 'unit': 'string'},
+        'attrs_standards': {
             'goal': {
-                'baseline': {'value': 'string', 'date': 'YYYY-MM-DD', 'notes': 'string (optional)'},
-                'target': {'value': 'string', 'date': 'YYYY-MM-DD'}
+                'description': 'Progress tracking enabled with baseline and target',
+                'required': ['baseline', 'target'],
+                'schema': {
+                    'baseline': {'value': 'string or number', 'date': 'YYYY-MM-DD', 'notes': 'string (optional)'},
+                    'target': {'value': 'string or number', 'date': 'YYYY-MM-DD'}
+                },
+                'example': {'baseline': {'value': '185lbs', 'date': '2025-09-01'}, 'target': {'value': '225lbs', 'date': '2026-03-01'}}
             },
             'plan': {
-                'start_date': 'YYYY-MM-DD (enables temporal context in overview)',
-                'duration_weeks': 'number (enables temporal context in overview)',
-                'deload_week': 'number (optional)'
+                'description': 'Temporal context (current week, progress %) enabled with start_date and duration_weeks',
+                'recommended': ['start_date', 'duration_weeks'],
+                'schema': {
+                    'start_date': 'YYYY-MM-DD (enables temporal context)',
+                    'duration_weeks': 'number (enables temporal context)',
+                    'deload_week': 'number (optional)',
+                    'focus': 'string (optional)'
+                },
+                'example': {'start_date': '2025-10-01', 'duration_weeks': 6, 'deload_week': 4, 'focus': 'hypertrophy'}
+            },
+            'plan-step': {
+                'description': 'Weekly training prescriptions',
+                'recommended': ['week', 'volume_target', 'intensity_target'],
+                'schema': {
+                    'week': 'number (week number in plan)',
+                    'volume_target': 'string or number',
+                    'intensity_target': 'string or number',
+                    'notes': 'string (optional)'
+                },
+                'example': {'week': 3, 'volume_target': '25km', 'intensity_target': 'RPE 7-8'}
+            },
+            'workout': {
+                'description': 'Logged training sessions - put rich data in attrs',
+                'recommended': ['exercises', 'duration_min', 'rpe'],
+                'schema': {
+                    'exercises': 'array of {name, sets, reps, weight, rpe} objects',
+                    'duration_min': 'number',
+                    'rpe': 'number (1-10)',
+                    'distance_km': 'number (for cardio)',
+                    'avg_hr': 'number (for cardio)',
+                    'notes': 'string (optional)'
+                },
+                'example': {
+                    'exercises': [{'name': 'Squat', 'sets': 5, 'reps': 5, 'weight_lbs': 245, 'rpe': 8}],
+                    'duration_min': 45,
+                    'rpe': 8,
+                    'notes': 'Felt strong today'
+                }
+            },
+            'current': {
+                'description': 'Current state metrics',
+                'recommended': ['numeric_value', 'unit', 'tested_date'],
+                'schema': {
+                    'numeric_value': 'number',
+                    'unit': 'string',
+                    'tested_date': 'YYYY-MM-DD (optional)'
+                },
+                'example': {'numeric_value': 180.5, 'unit': 'lbs', 'tested_date': '2025-10-09'}
             },
             'knowledge': {
-                'affected_exercises': 'array of strings (for contraindications)',
-                'safe_alternatives': 'array of strings (for contraindications)',
-                'retest_date': 'YYYY-MM-DD (for injury tracking)',
-                'severity': 'string (for contraindications)'
+                'description': 'User-specific observations and contraindications',
+                'optional': ['affected_exercises', 'safe_alternatives', 'retest_date', 'severity'],
+                'schema': {
+                    'affected_exercises': 'array of strings (for contraindications)',
+                    'safe_alternatives': 'array of strings (for contraindications)',
+                    'retest_date': 'YYYY-MM-DD (for injury tracking)',
+                    'severity': 'string (for contraindications)',
+                    'source': 'string (optional - book, coach, etc.)'
+                },
+                'example': {'affected_exercises': ['squat', 'lunge'], 'safe_alternatives': ['leg press', 'step-ups'], 'severity': 'moderate'}
             },
-            'issue': {'issue_type': 'bug|feature|enhancement', 'severity': 'critical|high|medium|low', 'title': 'string'},
+            'preference': {
+                'description': 'User preferences - keep attrs minimal, details in content',
+                'optional': ['priority_level'],
+                'example': {'priority_level': 'high'}
+            },
+            'metric': {
+                'description': 'Measurements and assessments',
+                'recommended': ['value', 'unit'],
+                'schema': {
+                    'value': 'number',
+                    'unit': 'string',
+                    'context': 'string (optional - e.g., "morning weigh-in")'
+                },
+                'example': {'value': 180.5, 'unit': 'lbs', 'context': 'morning weigh-in'}
+            }
+        },
+        'attrs_principles': {
+            'use_for_structured_data': 'Numbers, dates, arrays - data that needs programmatic access',
+            'use_content_for_rich_text': 'Narratives, explanations, detailed instructions go in content field',
+            'keep_simple': 'Flat structures preferred - avoid deep nesting',
+            'merge_on_display': 'Overview merges attrs into main dict for easy access',
+            'examples_of_good_attrs': [
+                {'target_weight_kg': 100, 'current_weight_kg': 90},  # Good: simple numbers
+                {'exercises': [{'name': 'Squat', 'sets': 5}]},  # Good: structured array
+                {'start_date': '2025-10-01', 'duration_weeks': 6}  # Good: enables temporal features
+            ],
+            'examples_of_bad_attrs': [
+                {'description': 'Long narrative text that should be in content field instead...'},  # Bad: rich text in attrs
+                {'config': {'nested': {'deeply': {'bad': 'value'}}}},  # Bad: deep nesting
+                {'stringified_json': '{"key": "value"}'}  # Bad: stringified JSON
+            ]
         },
         'temporal_context': {
             'description': 'Plans with start_date and duration_weeks in attrs will show computed temporal context in overview',

@@ -38,18 +38,23 @@ Base = declarative_base()
 class Entry(Base):
     __tablename__ = "entries"
 
+    # Core identity
     id = Column(UUID, primary_key=True, server_default=func.gen_random_uuid())
     user_id = Column(String(255), nullable=False, index=True)
+
+    # Type and identity
     kind = Column(String(50), nullable=False, index=True)
-    key = Column(String(255), nullable=True, index=True)
-    parent_key = Column(String(255), nullable=True, index=True)
+    key = Column(String(255), nullable=True, index=True)  # Items have keys, events don't
+
+    # Content and attributes
     content = Column(Text, nullable=False)
-    status = Column(String(50))
-    priority = Column(Integer)
-    tags = Column(String(255))
-    occurred_at = Column(DateTime(timezone=True))
-    due_date = Column(Date)
-    attrs = Column(JSONB, nullable=False, server_default=sql_text("'{}'::jsonb"))
+    attrs = Column(JSONB, nullable=False, server_default=sql_text("'{}'::jsonb"))  # All variable data goes here
+
+    # Simple binary status
+    status = Column(String(50), default='active')  # Only 'active' or 'archived'
+
+    # Timestamps
+    occurred_at = Column(DateTime(timezone=True))  # For events
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -60,7 +65,6 @@ class Entry(Base):
             func.to_tsvector('english', func.concat(func.coalesce(key, ''), ' ', content)),
             postgresql_using='gin'
         ),
-        Index('idx_entries_user_kind_parent', 'user_id', 'kind', 'parent_key'),
         Index('idx_entries_user_occured_at', 'user_id', 'occurred_at'),
     )
 

@@ -4,15 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a fitness tracking MCP (Model Context Protocol) server built with FastMCP and PostgreSQL. The server provides a comprehensive system for managing fitness goals, training plans, workouts, and knowledge through a unified entry-based architecture with full-text search capabilities.
+This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (6 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all variable data lives in JSONB attrs.
+
+### 🎯 6 Core Tools (Down from 17)
+
+1. **`upsert`** - Create/update items with identity (has key)
+2. **`log`** - Record timestamped events (no key) or update by ID
+3. **`overview`** - Lightweight scan of all data (truncated)
+4. **`get`** - Pull full details by keys or filters
+5. **`search`** - Find by content when key unknown
+6. **`archive`** - Soft delete (set status='archived')
 
 ### Core Concepts
 
-**Unified Entry Model**: All data (goals, plans, workouts, metrics, notes, etc.) is stored in a single `entries` table. Entries fall into two categories:
-- **Durable Items** (with `key`): Goals, plans, preferences, knowledge, principles - identified by `(user_id, kind, key)` unique constraint. Updates via upsert.
-- **Events** (no `key`): Workouts, metrics, notes - timestamped occurrences identified by UUID. Creates new entry each time.
+**Two Data Patterns**:
+- **Items** (has `key`): Durable things you update - goals, plans, knowledge. Same key = replace.
+- **Events** (no `key`): Timestamped occurrences - workouts, metrics, notes. Always creates new.
 
-**Planning Hierarchy**: The system supports temporal planning from strategies (long-term/short-term) → plans (3-6 weeks) → plan-steps (weekly) → workout events (sessions), all linked via `parent_key`.
+**Simplified Schema** (10 columns, down from 14):
+- Removed: `priority`, `tags`, `parent_key`, `due_date` (all moved to attrs)
+- Binary status: Only `active` or `archived`
+- Everything variable goes in `attrs` JSONB field
 
 **Temporal Context (Plans)**: Plans with `start_date` and `duration_weeks` in attrs get automatic temporal context in overview:
 - `current_week`: Which week of plan (computed from today - start_date)
@@ -46,24 +58,31 @@ uv run pytest -k "test_upsert"
 
 ### Running the Server
 ```bash
-# Start the MCP server (stdio transport)
-uv run python -m src.mcp_server
+# Start the simplified MCP server (6 tools)
+uv run python -m src.mcp_server_simple
 
 # Or use the script entry point
 uv run memory-server
 
 # Test server responds (5 second timeout)
-timeout 5s uv run python -m src.mcp_server
+timeout 5s uv run python -m src.mcp_server_simple
+
+# Run the old 17-tool version if needed
+uv run python -m src.mcp_server
 ```
 
 ### Database Setup
 ```bash
 # Apply migrations in order
-psql $DATABASE_URL < migrations/001_create_memories.sql
-psql $DATABASE_URL < migrations/002_create_entries.sql
+source .env && psql "$DATABASE_URL" < migrations/001_create_memories.sql
+source .env && psql "$DATABASE_URL" < migrations/002_create_entries.sql
+source .env && psql "$DATABASE_URL" < migrations/003_simplify_schema.sql  # NEW: Simplifies to 10 columns
 
 # Check database connection
 uv run python -c "from src.memory.db import engine; from sqlalchemy import text; engine.connect().execute(text('SELECT 1'))"
+
+# Check schema after migration
+source .env && psql "$DATABASE_URL" -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'entries';"
 ```
 
 ### Dependency Management
@@ -76,6 +95,60 @@ uv add <package-name>
 
 # Add dev dependencies
 uv add --dev <package-name>
+```
+
+## Simplified Tool Usage Examples
+
+### Quick Start - The 6 Tools
+
+```python
+# 1. UPSERT - Items with identity
+upsert(kind='goal', key='bench-225', content='Bench 225lbs x5')
+
+# 2. LOG - Timestamped events
+log(kind='workout', content='Squats 3x5 @ 225lbs', occurred_at='2025-01-15T10:00:00Z')
+
+# 3. OVERVIEW - Scan everything (truncated)
+overview()  # Returns all active items with truncated verbose content
+
+# 4. GET - Pull full details
+get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # Specific items
+get(kind='workout', start='2025-01-01', limit=10)  # Filtered list
+
+# 5. SEARCH - Find by content
+search('knee pain', kind='knowledge')
+
+# 6. ARCHIVE - Soft delete
+archive(kind='goal', key='old-goal')  # Specific item
+archive(kind='preference')  # Bulk archive all active preferences
+```
+
+### Common Workflows
+
+**Goal Tracking:**
+```python
+# Create goal with progress tracking
+upsert(kind='goal', key='bench-225', content='Bench 225lbs x5',
+       attrs={'baseline': {'value': '185lbs', 'date': '2025-09-01'},
+              'target': {'value': '225lbs', 'date': '2026-03-01'}})
+
+# Log progress
+log(kind='workout', content='Bench 3x5 @ 205lbs')
+
+# Check status
+overview()  # See all goals with progress
+```
+
+**Knowledge Management:**
+```python
+# Store knowledge
+upsert(kind='knowledge', key='knee-health',
+       content='Keep knees tracking over toes...',
+       attrs={'tags': ['injury-prevention', 'squat']})
+
+# Find relevant info
+search('knee pain')  # When you don't know the key
+get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the key
 ```
 
 ## Architecture
@@ -100,7 +173,7 @@ uv add --dev <package-name>
 ### Core Components
 
 **MCP Server** ([src/mcp_server.py](src/mcp_server.py)):
-- 16 FastMCP tools for fitness tracking (upsert_item, log_event, get_overview, search_entries, etc.)
+- 17 FastMCP tools for fitness tracking (upsert_item, log_event, get_overview, get_items_detail, search_entries, etc.)
 - Context managers (`get_session()`) for database session lifecycle
 - User ID resolution from environment variables (`FITNESS_USER_ID` or `DEFAULT_USER_ID`)
 - Date/datetime parsing with ISO 8601 format handling
@@ -111,9 +184,10 @@ uv add --dev <package-name>
 - `bulk_upsert_items()`: Batch upsert with single statement
 - `log_event()`: Insert events without keys (creates new entry each time)
 - `update_event()` / `delete_event()`: Event modifications by UUID
-- `get_overview()`: Structured aggregation of user data by kind with status grouping
+- `get_overview()`: Returns ALL items with truncated content (100 chars) for efficient scanning
+- `get_items_by_keys()`: Fetch full content for specific items by (kind, key) tuples
 - `search_entries()`: Full-text search across all entries
-- Helper functions: `_clean_entry()` (output formatting), `_group_by_status()` (status grouping)
+- Helper functions: `_clean_entry()` (output formatting with optional truncation), `_group_by_status()` (status grouping)
 
 **Database Models** ([src/memory/db.py](src/memory/db.py)):
 - `Entry` model: Unified table for all data types (goals, plans, workouts, metrics, etc.)
@@ -142,7 +216,21 @@ Result serialization & return
 
 ### Important Implementation Details
 
-**Attribute Handling**: `attrs` is JSONB accepting any valid JSON structure (arrays, nested objects). The MCP client may validate attrs more strictly than the backend - if validation fails, retry without attrs and inform the user.
+**Overview Truncation Pattern** (NEW): `get_overview()` returns ALL active items but truncates verbose content to 100 chars (knowledge, principles, preferences, plan-steps, workouts). This enables efficient context scanning without loading full textbook entries. Use `get_items_detail([{"kind": "knowledge", "key": "knee-health"}])` to fetch complete content for specific items. Goals/plans/current show full content (should be concise).
+
+**Pull-Based Context Composition**: LLMs should scan truncated overview, then pull full details only for relevant items using `get_items_detail()`, `search_entries()`, or `list_items()`. Multiple small queries >> one giant dump.
+
+**Attribute Handling**: `attrs` is JSONB accepting any valid JSON structure (arrays, nested objects). Standards defined in `describe_conventions()`:
+- Goals: `{baseline: {value, date}, target: {value, date}}` (enables progress tracking)
+- Plans: `{start_date: 'YYYY-MM-DD', duration_weeks: number}` (enables temporal context)
+- Workouts: `{exercises: [{name, sets, reps, weight, rpe}], duration_min, rpe}`
+- Use attrs for structured data (numbers, arrays), content for narratives
+
+**Content Brevity Guidelines**: Store concise summaries, not textbooks:
+- Goals: 10-20 words ("Bench 225lbs x5")
+- Knowledge: 200-400 words, user-specific observations only (not general science LLMs already know)
+- Principles: 150-300 words, reminders not full protocols
+- See [FITNESS_COACH_INSTRUCTIONS.md](FITNESS_COACH_INSTRUCTIONS.md) for detailed guidelines
 
 **Status Values**: No enum constraint - common values are `active`, `archived`, `achieved`, `paused`, `open` (for issues). Overview excludes `archived` items.
 
@@ -189,23 +277,46 @@ Optional:
 
 [FITNESS_COACH_INSTRUCTIONS.md](FITNESS_COACH_INSTRUCTIONS.md) contains comprehensive guidance for LLMs using this MCP server. Key points:
 
-**Critical Patterns**:
-- Always call `get_overview()` at session start for context
+**Critical Patterns (NEW - Pull-Based Context)**:
+- Always call `get_overview()` at session start - returns ALL items with truncated content (100 chars)
+- Scan overview to see what exists (keys visible, content truncated for verbose kinds)
+- Pull full details on-demand: `get_items_detail([{"kind": "knowledge", "key": "knee-health"}])`
+- Or search for specifics: `search_entries(query='knee pain', kind='knowledge', limit=3)`
 - Use `upsert_item()` for durable data (never duplicate same key)
 - Use `log_event()` for timestamped events (creates new each time)
 - Archive items (`status='archived'`) instead of deleting (preserves history)
-- Include comprehensive attrs in workout logs (exercises, RPE, notes)
+
+**Context Composition Patterns** (see [FITNESS_COACH_INSTRUCTIONS.md](FITNESS_COACH_INSTRUCTIONS.md#context-composition-patterns)):
+- **Workout Planning**: Overview → see active plans → pull plan steps if needed
+- **Injury Query**: Overview → scan truncated knowledge → pull relevant items or search
+- **Goal Review**: Overview → goals show full content (already concise)
+- **Preferences**: Overview → truncated → pull only if relevant to current task
+
+**Content Brevity**:
+- Goals: 10-20 words max ("Bench 225lbs x5")
+- Knowledge: 200-400 words, user-specific observations only
+- Principles: 150-300 words, reminders not full protocols
+- Store what LLM doesn't know, not textbook content
+
+**Attrs Standards** (see `describe_conventions()` tool):
+- Goals: `{baseline: {value, date}, target: {value, date}}`
+- Plans: `{start_date, duration_weeks}` (enables temporal context)
+- Workouts: `{exercises: [{name, sets, reps, weight, rpe}], duration_min, rpe}`
+- Use attrs for structured data (numbers, arrays), content for narratives
 
 **Common Mistakes to Avoid**:
 - Using backticks for strings (use `'goal'` not `` `goal` ``)
 - Stringifying attrs (`attrs='{"key": "value"}'` instead of `attrs={'key': 'value'}`)
 - Creating duplicate items instead of updating existing ones
-- Deleting items when archiving would be better
+- Storing textbook knowledge instead of user-specific observations
+- Pulling all knowledge every session (use truncated overview + selective pulls)
 
 **Tool Selection**:
-- `upsert_item()`: Goals, plans, preferences, knowledge (anything with a memorable key)
-- `log_event()`: Workouts, metrics, notes (timestamped occurrences)
-- `update_event()`: Fix logged events after the fact (add RPE, correct mistakes)
-- `archive_items()`: Bulk archiving of items by kind/status/tags
+- `get_overview()`: Lightweight scan of all data (truncated content)
+- `get_items_detail()`: Fetch full content for specific items by keys
 - `search_entries()`: Find entries by content when key unknown
-- `get_overview()`: Structured view of all active data (excludes archived, issues)
+- `list_items()`: Targeted queries by kind/status/tags
+- `upsert_item()`: Goals, plans, preferences, knowledge (anything with memorable key)
+- `log_event()`: Workouts, metrics, notes (timestamped occurrences)
+- `update_event()`: Fix logged events after the fact
+- `archive_items()`: Bulk archiving by kind/status/tags
