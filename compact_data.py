@@ -2,6 +2,11 @@
 """Compact verbose database entries to follow brevity guidelines."""
 import os
 from contextlib import contextmanager
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
 from src.memory.crud import upsert_item
 from src.memory.db import SessionLocal
 
