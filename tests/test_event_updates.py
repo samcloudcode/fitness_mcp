@@ -25,9 +25,7 @@ def test_update_event(session):
         user_id,
         kind='workout',
         content='Initial workout log',
-        occurred_at=datetime(2025, 10, 5, 7, 0, 0, tzinfo=timezone.utc),
-        tags='test',
-        attrs={'reps': 10, 'weight': 100}
+        occurred_at=datetime(2025, 10, 5, 7, 0, 0, tzinfo=timezone.utc)
     )
 
     event_id = event['id']
@@ -37,16 +35,11 @@ def test_update_event(session):
         session,
         user_id,
         event_id=event_id,
-        content='Updated workout log',
-        tags='test,updated',
-        attrs={'reps': 10, 'weight': 100, 'rpe': 8}
+        content='Updated workout log with more details'
     )
 
     assert updated is not None
-    assert updated['content'] == 'Updated workout log'
-    assert updated['tags'] == 'test,updated'
-    assert updated['attrs']['rpe'] == 8
-    assert updated['attrs']['weight'] == 100
+    assert updated['content'] == 'Updated workout log with more details'
 
     # Verify occurred_at wasn't changed (we didn't update it)
     assert updated['occurred_at'] == event['occurred_at']
@@ -61,20 +54,18 @@ def test_update_event_partial(session):
         session,
         user_id,
         kind='metric',
-        content='Bodyweight: 180 lbs',
-        attrs={'weight_lbs': 180}
+        content='Bodyweight: 180 lbs'
     )
 
-    # Update only attrs
+    # Update content
     updated = crud.update_event(
         session,
         user_id,
         event_id=event['id'],
-        attrs={'weight_lbs': 180, 'body_fat_pct': 15}
+        content='Bodyweight: 180 lbs, 15% bodyfat'
     )
 
-    assert updated['content'] == 'Bodyweight: 180 lbs'  # Unchanged
-    assert updated['attrs']['body_fat_pct'] == 15  # New field added
+    assert updated['content'] == 'Bodyweight: 180 lbs, 15% bodyfat'
 
 
 def test_update_nonexistent_event(session):
@@ -134,8 +125,7 @@ def test_update_event_workflow(session):
         user_id,
         kind='workout',
         content='Lower body session',
-        occurred_at=datetime(2025, 10, 5, 18, 30, 0, tzinfo=timezone.utc),
-        tags='strength,lower-body'
+        occurred_at=datetime(2025, 10, 5, 18, 30, 0, tzinfo=timezone.utc)
     )
 
     workout_id = workout['id']
@@ -145,25 +135,10 @@ def test_update_event_workflow(session):
         session,
         user_id,
         event_id=workout_id,
-        content='Lower body session: Squat 5x5@245lbs',
-        attrs={'exercises': [{'name': 'Squat', 'sets': 5, 'reps': 5, 'weight_lbs': 245}]}
-    )
-
-    # User adds RPE later
-    existing_attrs = workout['attrs']
-    workout = crud.update_event(
-        session,
-        user_id,
-        event_id=workout_id,
-        attrs={
-            **existing_attrs,
-            'rpe': 8,
-            'notes': 'Bar speed good'
-        }
+        content='Lower body session: Squat 5x5 @ 245lbs RPE 8. Bar speed good.'
     )
 
     # Final verification
-    assert workout['content'] == 'Lower body session: Squat 5x5@245lbs'
-    assert workout['attrs']['rpe'] == 8
-    assert workout['attrs']['notes'] == 'Bar speed good'
-    assert workout['attrs']['exercises'][0]['weight_lbs'] == 245
+    assert 'Squat 5x5 @ 245lbs' in workout['content']
+    assert 'RPE 8' in workout['content']
+    assert 'Bar speed good' in workout['content']

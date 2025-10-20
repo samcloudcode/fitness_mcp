@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Index, Integer, UniqueConstraint, Date
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR, JSONB
+from sqlalchemy import create_engine, Column, String, Text, DateTime, Index, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import os
@@ -46,9 +46,8 @@ class Entry(Base):
     kind = Column(String(50), nullable=False, index=True)
     key = Column(String(255), nullable=True, index=True)  # Items have keys, events don't
 
-    # Content and attributes
+    # Content - everything goes here as natural text
     content = Column(Text, nullable=False)
-    attrs = Column(JSONB, nullable=False, server_default=sql_text("'{}'::jsonb"))  # All variable data goes here
 
     # Simple binary status
     status = Column(String(50), default='active')  # Only 'active' or 'archived'
