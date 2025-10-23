@@ -31,6 +31,8 @@ This is a simplified fitness tracking MCP server following Claude Code's philoso
 
 **Observability**: Integrated Logfire instrumentation for SQLAlchemy operations, configurable via environment variables (`LOGFIRE_SEND_TO_LOGFIRE`, `ENVIRONMENT`).
 
+**Naming Conventions**: Strict key naming and content structure rules ensure data consistency. See [NAMING_CONVENTIONS.md](NAMING_CONVENTIONS.md) for complete reference.
+
 ## Development Commands
 
 ### Running Tests
@@ -68,14 +70,49 @@ uv run python -m src.mcp_server
 # Apply migrations in order
 source .env && psql "$DATABASE_URL" < migrations/001_create_memories.sql
 source .env && psql "$DATABASE_URL" < migrations/002_create_entries.sql
-source .env && psql "$DATABASE_URL" < migrations/003_simplify_schema.sql  # NEW: Simplifies to 10 columns
+source .env && psql "$DATABASE_URL" < migrations/003_simplify_schema.sql  # Simplifies to 9 columns
+
+# Optional: Clean up naming conventions and duplicates
+source .env && psql "$DATABASE_URL" < migrations/004_cleanup_naming_conventions.sql
 
 # Check database connection
 uv run python -c "from src.memory.db import engine; from sqlalchemy import text; engine.connect().execute(text('SELECT 1'))"
 
-# Check schema after migration
-source .env && psql "$DATABASE_URL" -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'entries';"
+# Check schema
+source .env && psql "$DATABASE_URL" -c "SELECT column_name, data_type FROM information_schema.columns WHERE schemaname = 'public' AND table_name = 'entries';"
 ```
+
+### Database Querying with psql
+
+**IMPORTANT:** The database uses Supabase which requires explicit schema qualification. Always use `public.entries` instead of just `entries`.
+
+```bash
+# Count all active entries
+source .env && psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM public.entries WHERE status = 'active';"
+
+# View all active entries by kind
+source .env && psql "$DATABASE_URL" -c "SELECT kind, COUNT(*) as count FROM public.entries WHERE status = 'active' GROUP BY kind ORDER BY kind;"
+
+# Check for duplicate keys (should be 0)
+source .env && psql "$DATABASE_URL" -c "SELECT kind, key, COUNT(*) FROM public.entries WHERE status = 'active' AND key IS NOT NULL GROUP BY kind, key HAVING COUNT(*) > 1;"
+
+# View recent workouts (events have NULL key)
+source .env && psql "$DATABASE_URL" -c "SELECT occurred_at, LEFT(content, 80) FROM public.entries WHERE kind = 'workout' AND status = 'active' ORDER BY occurred_at DESC LIMIT 10;"
+
+# Backup data to CSV
+source .env && psql "$DATABASE_URL" -c "\copy (SELECT * FROM public.entries) TO 'backup_$(date +%Y%m%d_%H%M%S).csv' CSV HEADER"
+
+# Delete test data (keep only user_id = '1')
+source .env && psql "$DATABASE_URL" -c "DELETE FROM public.entries WHERE user_id <> '1';"
+
+# List all unique users
+source .env && psql "$DATABASE_URL" -c "SELECT DISTINCT user_id FROM public.entries ORDER BY user_id;"
+```
+
+**Common Gotchas:**
+- ❌ `FROM entries` → Use `FROM public.entries` (schema required)
+- ❌ `WHERE user_id != '1'` → Use `WHERE user_id <> '1'` (avoid `!` in psql)
+- ❌ `table_name = 'entries'` → Use `schemaname = 'public' AND table_name = 'entries'`
 
 ### Dependency Management
 ```bash
@@ -95,8 +132,9 @@ uv add --dev <package-name>
 
 ```python
 # 1. UPSERT - Items with identity
-# Put EVERYTHING in content field - keep it simple!
-upsert(kind='goal', key='bench-225', content='Bench 225lbs x5 by March. Started at 185 in Sept.')
+# Put EVERYTHING in content field - include "why" context!
+upsert(kind='goal', key='bench-225',
+       content='Bench 225x5 by March (currently 185x5). Priority: High. Why: Foundation for rugby performance.')
 
 # 2. LOG - Timestamped events
 # Full workout details in content, one line
@@ -106,7 +144,7 @@ log(kind='workout', content='Lower: Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185')
 overview()  # Returns all ACTIVE items (archived excluded), verbose content truncated to 100 chars
 
 # 4. GET - Pull full details
-get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # Specific items
+get(items=[{'kind': 'knowledge', 'key': 'knee-health-alignment'}])  # Specific items
 get(kind='workout', limit=14)  # Last 2 weeks of workouts (safety first!)
 
 # 5. SEARCH - Find by content
@@ -117,29 +155,37 @@ archive(kind='goal', key='old-goal')  # Specific item
 archive(kind='preference')  # Bulk archive all active preferences
 ```
 
-### The "Everything in Content" Principle
+### Planning Hierarchy (4 Levels)
 
-**Pure simplicity** - everything goes in the `content` field as natural text:
+**Everything in content with "why" context:**
 
 ```python
-# ✅ Everything in content as natural text
+# 1. GOALS - Target states with priorities
 upsert(
-    kind='knowledge',
-    key='knee-issue',
-    content='Knee pain from narrow stance squats. Wider stance + "spread floor" cue fixed it. Started Sept 2024. Tags: injury-prevention, squat-form'
+    kind='goal',
+    key='bench-225',
+    content='Bench 225x5 by June (currently 185x5). Priority: High. Why: Foundation for rugby - need upper body strength for scrums.'
 )
 
-# ✅ Plans with dates and progress in content
+# 2. PROGRAM - Overall strategy (single living document)
 upsert(
-    kind='plan',
-    key='squat-8wk',
-    content='Linear squat progression: 275→315lbs (+5/wk). 8 weeks starting Jan 1. Week 3 of 8. Deload week 4.'
+    kind='program',
+    key='current-program',
+    content='Oct-Dec: Strength primary 4x/week (bench-225, squat-315), running secondary 3x/week (20-25mpw). Why: Rugby season April needs strength peak. Daily hip mobility - consistency > intensity for mobility gains.'
 )
 
-# ✅ Workouts with all details in one line
-log(
-    kind='workout',
-    content='Lower (52min): Squats 5x5 @ 245 RPE 7, RDL 3x8 @ 185 RPE 6'
+# 3. WEEK - This week's schedule
+upsert(
+    kind='week',
+    key='2025-week-43',
+    content='Mon: Upper. Tue: Easy run. Wed: Lower. Thu: OFF (travel). Fri: Tempo. Sat: Full body. Sun: Long run. Why: Travel Thu means 6 sessions not 7, compensate Sat volume.'
+)
+
+# 4. SESSION - Today's planned workout
+upsert(
+    kind='session',
+    key='2025-10-22-strength',
+    content='6am Upper: Bench 4x10 @ 185 (volume for bench-225), OHP 3x12 @ 115 (shoulder health), rows 3x12. Why: Hypertrophy phase. OHP light due to shoulder tweak.'
 )
 ```
 
@@ -149,11 +195,11 @@ Natural language, fully searchable, no structured data complexity.
 
 **Goal Tracking:**
 ```python
-# Create goal with progress in content
+# Create goal with priority and rationale
 upsert(
     kind='goal',
     key='bench-225',
-    content='Bench 225lbs x5 by March. Started at 185 in Sept.'
+    content='Bench 225x5 by March (currently 185x5). Priority: High. Why: Strength foundation for sport performance.'
 )
 
 # Log progress
@@ -242,14 +288,16 @@ Result serialization & return
 
 ### Important Implementation Details
 
-**Overview Truncation Pattern**: `get_overview()` returns ALL active items but truncates verbose content to 100 chars (knowledge, principles, preferences, workouts). This enables efficient context scanning without loading full entries. Use `get()` to fetch complete content for specific items. Goals/plans/current show full content (should be concise).
+**Overview Truncation Pattern**: `get_overview()` returns ALL active items but truncates verbose content to 100 chars (knowledge, principles, preferences, workouts). This enables efficient context scanning without loading full entries. Use `get()` to fetch complete content for specific items. Goals/program/week/session/current show full content (should be concise).
 
 **Pull-Based Context Composition**: LLMs should scan truncated overview, then pull full details only for relevant items using `get()` or `search()`. Multiple small queries >> one giant dump.
 
-**Content Brevity Guidelines**: Store concise summaries, not textbooks:
-- Goals: 10-30 words ("Bench 225lbs x5 by March. Started at 185 in Sept.")
-- Knowledge: 20-50 words, user-specific observations only (not general science LLMs already know)
-- Plans: 30-60 words with dates and progression details
+**Content Brevity Guidelines**: Store concise summaries with "why" context:
+- Goals: 20-50 words with priority and rationale ("Bench 225x5 by June. Priority: High. Why: Rugby performance.")
+- Program: 80-150 words explaining strategy across all goals
+- Week: 50-100 words with daily schedule and adjustments
+- Session: 40-80 words with exercises and rationale
+- Knowledge: 30-60 words, user-specific observations only (not general science LLMs already know)
 - Workouts: One line with all details ("Lower: Squats 5x5 @ 245 RPE 7, RDL 3x8 @ 185")
 - See [FITNESS_COACH_INSTRUCTIONS_SIMPLE.md](FITNESS_COACH_INSTRUCTIONS_SIMPLE.md) for detailed guidelines
 
@@ -265,7 +313,12 @@ Result serialization & return
 - "Week 3 of 8-week cycle"
 - "Relates to knee-health knowledge entry"
 
-**Kind Values**: No enforced enum - core kinds are `goal`, `plan`, `plan-step`, `strategy`, `preference`, `knowledge`, `principle`, `current`, `workout`, `workout-plan`, `metric`, `note`, `issue`. New kinds can be added without schema changes.
+**Kind Values**: No enforced enum - core kinds are:
+- **With keys (items)**: `goal`, `program`, `week`, `session`, `knowledge`, `preference`, `principle`, `current`, `strategy`
+- **Without keys (events)**: `workout`, `metric`, `note`
+- **Deprecated**: `plan`, `plan-step`, `workout-plan` (replaced by `program`, `week`, `session`)
+
+New kinds can be added without schema changes.
 
 **User Isolation**: All queries filter by `user_id` from environment variable. Multi-tenant by design but typically single-user in practice.
 
@@ -327,7 +380,7 @@ Optional:
 - Missing safety checks: ALWAYS fetch all knowledge before programming workouts
 
 **Workflow Examples**:
-- **User wants workout**: `overview()` → `get(kind='knowledge')` → `get(kind='workout', limit=14)` → `get(kind='plan')` → **Propose (don't save)** → Get approval → `log()`
+- **User wants workout**: `overview()` → `get(kind='knowledge')` → `get(kind='workout', limit=14)` → `get(items=[{'kind': 'program', 'key': 'current-program'}])` → **Propose (don't save)** → Get approval → `log()`
 - **User provides info**: Save immediately with `upsert()` or `log()`
 - **User asks question**: `overview()` → `get()` full details → Answer
-- **Plans change**: Update immediately when agreed with `upsert()`
+- **Program/week/session updates**: Update immediately when agreed with `upsert()`
