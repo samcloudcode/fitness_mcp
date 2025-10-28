@@ -331,31 +331,6 @@ def get(
 
 
 @mcp.tool
-def search(
-    query: str,
-    kind: Optional[str] = None,
-    limit: int = 100
-) -> list[dict]:
-    """Search by content when you don't know the key.
-
-    Uses PostgreSQL full-text search across key and content fields.
-
-    Args:
-        query: Search terms (e.g., 'knee pain', 'squat form')
-        kind: Optional filter by kind
-        limit: Max results (default 100)
-
-    Examples:
-        search('knee pain')
-        search('knee pain', kind='knowledge')
-        search('bench press progress', kind='log')
-    """
-    user_id = _get_user_id()
-    with get_session() as session:
-        return crud.search_entries(session, user_id, query=query, kind=kind, limit=limit)
-
-
-@mcp.tool
 def archive(
     kind: Optional[str] = None,
     key: Optional[str] = None,

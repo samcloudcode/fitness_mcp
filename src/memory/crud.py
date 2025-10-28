@@ -425,19 +425,19 @@ def get_overview(
         truncate_words: Max words for verbose content before truncation (default 200).
                        Use get() to fetch full content for specific items.
         context: Optional context for filtering relevant data:
-                - 'planning': Goals, program, week, session, preferences, knowledge, recent workouts (2 weeks)
-                - 'upcoming': Goals, week, session, recent workouts (1 week)
+                - 'planning': Goals (priority order), program, week, plans (recent 5/2wks), preferences, knowledge, logs (recent 10/2wks)
+                - 'upcoming': Goals, week, plans, recent logs (1 week)
                 - 'knowledge': Goals, program, preferences, knowledge
-                - 'history': Goals, all workouts, metrics (for progress review)
+                - 'history': Goals, all logs, metrics (for progress review)
                 - None: All data (default behavior)
     """
     with logfire.span('get overview', user_id=user_id, truncate_words=truncate_words, context=context):
         # Define context-based kind filters
         context_filters = {
-            'planning': {'goal', 'program', 'week', 'session', 'preference', 'knowledge', 'workout'},
-            'upcoming': {'goal', 'week', 'session', 'workout'},
+            'planning': {'goal', 'program', 'week', 'plan', 'preference', 'knowledge', 'log'},
+            'upcoming': {'goal', 'week', 'plan', 'log'},
             'knowledge': {'goal', 'program', 'preference', 'knowledge'},
-            'history': {'goal', 'workout', 'metric'},
+            'history': {'goal', 'log', 'metric'},
         }
 
         # Exclude archived entries and issues from overview
@@ -468,14 +468,18 @@ def get_overview(
 
         overview: dict[str, Any] = {}
 
-        # Determine workout limit based on context
-        workout_limit = 10  # default
+        # Determine log limit based on context
+        log_limit = 10  # default (10 logs or ~2 weeks)
+        plan_limit = 5  # default (5 plans or ~2 weeks)
         if context == 'planning':
-            workout_limit = 14  # ~2 weeks
+            log_limit = 10  # most recent 10 or ~2 weeks
+            plan_limit = 5  # most recent 5 or ~2 weeks
         elif context == 'upcoming':
-            workout_limit = 7   # ~1 week
+            log_limit = 7   # ~1 week
+            plan_limit = 5  # ~1 week
         elif context == 'history':
-            workout_limit = 500  # All history (large limit)
+            log_limit = 500  # All history (large limit)
+            plan_limit = 500  # All history
 
         # Strategies (long-term and short-term) - TRUNCATED
         strategies = by_kind.get("strategy", [])
@@ -493,29 +497,44 @@ def get_overview(
             if strategy_section:
                 overview["strategies"] = strategy_section
 
-        # Goals (grouped by status) - full content
+        # Goals (grouped by status) - full content, ordered by priority
         goals = by_kind.get("goal", [])
         if goals:
+            def _priority_sort_key(item: Entry) -> tuple:
+                # Extract priority from content (High > Medium > Low > none)
+                content_lower = (item.content or "").lower()
+                if "priority: high" in content_lower or "priority:high" in content_lower:
+                    priority_rank = 0
+                elif "priority: medium" in content_lower or "priority:medium" in content_lower:
+                    priority_rank = 1
+                elif "priority: low" in content_lower or "priority:low" in content_lower:
+                    priority_rank = 2
+                else:
+                    priority_rank = 3  # No priority specified
+                # Secondary sort by updated_at (recent first)
+                timestamp = -(item.updated_at or item.created_at or datetime.min).timestamp()
+                return (priority_rank, timestamp)
+
             goal_groups = _group_by_status(goals, default_key="active")
             goals_section: dict[str, list[dict[str, Any]]] = {}
             for status, items in goal_groups.items():
-                cleaned = [_clean_entry(item, for_overview=True) for item in _sorted(items)]
+                sorted_items = sorted(items, key=_priority_sort_key)
+                cleaned = [_clean_entry(item, for_overview=True) for item in sorted_items]
                 if cleaned:
                     goals_section[status] = cleaned
             if goals_section:
                 overview["goals"] = goals_section
 
-        # Plans (grouped by status) - full content
+        # Plans - recent plans only, sorted by date (recent first)
         plans = by_kind.get("plan", [])
         if plans:
-            plan_groups = _group_by_status(plans, default_key="active")
-            plans_section: dict[str, list[dict[str, Any]]] = {}
-            for status, items in plan_groups.items():
-                cleaned = [_clean_entry(item, for_overview=True) for item in _sorted(items)]
-                if cleaned:
-                    plans_section[status] = cleaned
-            if plans_section:
-                overview["plans"] = plans_section
+            # Sort by key (which contains date YYYY-MM-DD) descending (recent first)
+            recent_plans = sorted(
+                plans,
+                key=lambda item: item.key or "",
+                reverse=True,
+            )[:plan_limit]
+            overview["recent_plans"] = [_clean_entry(item, for_overview=True) for item in recent_plans]
 
         # Current state (simple list) - full content
         current = by_kind.get("current", [])
@@ -532,11 +551,6 @@ def get_overview(
         if weeks:
             overview["week"] = [_clean_entry(item, for_overview=True) for item in _sorted(weeks)]
 
-        # Session (planned sessions) - full content
-        sessions = by_kind.get("session", [])
-        if sessions:
-            overview["session"] = [_clean_entry(item, for_overview=True) for item in _sorted(sessions)]
-
         # Preferences (simple list) - TRUNCATED
         preferences = by_kind.get("preference", [])
         if preferences:
@@ -552,15 +566,15 @@ def get_overview(
         if principles:
             overview["principles"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in _sorted(principles)]
 
-        # Recent workouts (context-aware limit) - TRUNCATED
-        workouts = by_kind.get("workout", [])
-        if workouts:
+        # Recent logs (context-aware limit) - TRUNCATED
+        logs = by_kind.get("log", [])
+        if logs:
             recent = sorted(
-                workouts,
+                logs,
                 key=lambda item: (item.occurred_at or item.created_at or datetime.min),
                 reverse=True,
-            )[:workout_limit]
-            overview["recent_workouts"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in recent]
+            )[:log_limit]
+            overview["recent_logs"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in recent]
 
         # Recent metrics - full content (already short)
         # Limit based on context: history mode shows all, default shows last 10
