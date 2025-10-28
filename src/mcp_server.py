@@ -88,12 +88,12 @@ def upsert(
 ) -> dict:
     """Create or update an item with identity (has a key).
 
-    Use for durable data: goals, plans, knowledge, preferences, etc.
+    Use for durable data with 6 item kinds: goal, program, week, plan, knowledge, preference.
     Same key = update existing item. Everything goes in content as natural text.
 
     Args:
-        kind: Type of item (goal, plan, knowledge, preference, etc.)
-        key: Unique identifier within kind (e.g., 'bench-225', 'knee-health')
+        kind: Type of item (goal, program, week, plan, knowledge, preference)
+        key: Unique identifier within kind (e.g., 'bench-225', 'current-program', '2025-week-43')
         content: Main content/description - PUT EVERYTHING HERE as natural text
         status: 'active' (default) or 'archived'
         old_key: Optional - if provided, renames entry from old_key to key.
@@ -101,25 +101,32 @@ def upsert(
                  If both old_key and key exist, raises error.
 
     Examples:
-        # Goal
+        # Goal with priority and rationale
         upsert(
             kind='goal',
             key='bench-225',
-            content='Bench 225lbs x5 by March. Started at 185 in Sept.'
+            content='Bench 225x5 by June (currently 185x5). Priority: High. Why: Foundation for rugby strength.'
         )
 
-        # Knowledge with tags in content
+        # Program (single living document)
+        upsert(
+            kind='program',
+            key='current-program',
+            content='As of Oct 2025: Strength primary 4x/week (bench-225, squat-315), running secondary 3x/week. Why: Rugby season April needs strength peak.'
+        )
+
+        # Week schedule
+        upsert(
+            kind='week',
+            key='2025-week-43',
+            content='Mon: Upper. Tue: Run. Wed: Lower. Thu: OFF (travel). Why: Travel Thu means 6 sessions not 7.'
+        )
+
+        # Knowledge with specific focus
         upsert(
             kind='knowledge',
-            key='knee-health',
-            content='Knee tracking: keep knees over toes, avoid narrow stance. Tags: injury-prevention, squat-form'
-        )
-
-        # Plan with dates in content
-        upsert(
-            kind='plan',
-            key='squat-8wk',
-            content='Linear squat progression: 275→315lbs (+5/wk). 8 weeks starting Jan 1. Week 3 of 8. Deload week 4.'
+            key='knee-health-alignment',
+            content='Knee tracking: keep knees over toes, wider stance eliminates pain. Why: Activates glute med, prevents knee cave.'
         )
 
         # Rename existing goal
@@ -153,10 +160,10 @@ def log(
 ) -> dict:
     """Log a timestamped event (no key, creates new entry) OR update existing event by ID.
 
-    Use for events: workouts, metrics, notes. Always creates new unless event_id provided.
+    Use for events with 3 event kinds: log, metric, note. Always creates new unless event_id provided.
 
     Args:
-        kind: Type of event (workout, metric, note)
+        kind: Type of event (log, metric, note)
         content: Description of the event - PUT EVERYTHING HERE as natural text
         occurred_at: ISO 8601 timestamp (defaults to now)
         event_id: If provided, updates existing event instead of creating new
@@ -164,9 +171,8 @@ def log(
     Examples:
         # Log workout - everything in content
         log(
-            kind='workout',
-            content='Lower (52min): Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185lbs RPE 6',
-            occurred_at='2025-01-15T10:00:00Z'
+            kind='log',
+            content='Lower (52min): Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185lbs RPE 6'
         )
 
         # Update existing event
@@ -175,11 +181,9 @@ def log(
             content='Lower (52min): Squats 5x5 @ 230lbs RPE 7, RDL 3x8 @ 185lbs RPE 6'  # Corrected weight
         )
 
-        # Metric
-        log(
-            kind='metric',
-            content='Weight: 185lbs, 14% bodyfat'
-        )
+        # Metrics (one per entry for better trend tracking)
+        log(kind='metric', content='Weight: 71kg')
+        log(kind='metric', content='Body fat: 9%')  # Separate entry, same timestamp
     """
     user_id = _get_user_id()
 
@@ -221,14 +225,14 @@ def overview(truncate_words: int = 200, context: Optional[str] = None) -> dict:
     Args:
         truncate_words: Max words before truncation (default 200)
         context: Optional context for filtering:
-                - 'planning': Goals, program, week, session, preferences, knowledge, recent workouts (2 weeks)
-                - 'upcoming': Goals, week, session, recent workouts (1 week)
+                - 'planning': Goals, program, week, plan (recent 5), preferences, knowledge, logs (recent 10)
+                - 'upcoming': Goals, week, plan (recent 5), logs (recent 7)
                 - 'knowledge': Goals, program, preferences, knowledge
-                - 'history': Goals, all workouts, all metrics (for progress review)
+                - 'history': Goals, all logs, all metrics (for progress review)
                 - None: All data (default)
 
     Returns:
-        Organized dict with current_date, goals, program, week, session, knowledge (truncated), etc.
+        Organized dict with current_date, goals, program, week, recent_plans, knowledge (truncated), etc.
 
     Examples:
         # Planning a workout - comprehensive context
@@ -270,7 +274,7 @@ def get(
 
     Two modes:
     1. Fetch specific items by keys: get(items=[{'kind': 'goal', 'key': 'bench-225'}])
-    2. Filter and list: get(kind='workout', start='2025-01-01', limit=10)
+    2. Filter and list: get(kind='log', start='2025-01-01', limit=10)
 
     Args:
         items: List of {'kind': ..., 'key': ...} to fetch specific items
@@ -287,8 +291,8 @@ def get(
             {'kind': 'goal', 'key': 'bench-225'}
         ])
 
-        # List recent workouts
-        get(kind='workout', start='2025-01-01', limit=10)
+        # List recent logs (workouts)
+        get(kind='log', start='2025-01-01', limit=10)
 
         # Get all active goals
         get(kind='goal', status='active')
@@ -302,7 +306,7 @@ def get(
             return crud.get_items_by_keys(session, user_id, keys=keys)
         else:
             # Mode 2: Filter and list
-            if kind in ['workout', 'metric', 'note']:
+            if kind in ['log', 'metric', 'note']:
                 # Events - use list_events
                 start_dt = datetime.fromisoformat(start) if start else None
                 end_dt = datetime.fromisoformat(end) if end else None
@@ -343,7 +347,8 @@ def search(
 
     Examples:
         search('knee pain')
-        search('progressive overload', kind='principle')
+        search('knee pain', kind='knowledge')
+        search('bench press progress', kind='log')
     """
     user_id = _get_user_id()
     with get_session() as session:

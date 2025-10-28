@@ -4,16 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (6 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
+This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (5 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
 
-### 🎯 6 Core Tools (Down from 17)
+### 🎯 5 Core Tools (Down from 17)
 
 1. **`upsert`** - Create/update items with identity (has key)
 2. **`log`** - Record timestamped events (no key) or update by ID
 3. **`overview`** - Lightweight scan of all data (truncated)
 4. **`get`** - Pull full details by keys or filters
-5. **`search`** - Find by content when key unknown
-6. **`archive`** - Soft delete (set status='archived')
+5. **`archive`** - Soft delete (set status='archived')
 
 ### Core Concepts
 
@@ -52,17 +51,14 @@ uv run pytest -k "test_upsert"
 
 ### Running the Server
 ```bash
-# Start the simplified MCP server (6 tools)
-uv run python -m src.mcp_server_simple
+# Start the simplified MCP server (5 tools)
+uv run python -m src.mcp_server
 
 # Or use the script entry point
 uv run memory-server
 
 # Test server responds (5 second timeout)
-timeout 5s uv run python -m src.mcp_server_simple
-
-# Run the old 17-tool version if needed
-uv run python -m src.mcp_server
+timeout 5s uv run python -m src.mcp_server
 ```
 
 ### Database Setup
@@ -250,7 +246,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 ### Core Components
 
 **MCP Server** ([src/mcp_server.py](src/mcp_server.py)):
-- 17 FastMCP tools for fitness tracking (upsert_item, log_event, get_overview, get_items_detail, search_entries, etc.)
+- 6 FastMCP tools for fitness tracking: `upsert`, `log`, `overview`, `get`, `search`, `archive`
 - Context managers (`get_session()`) for database session lifecycle
 - User ID resolution from environment variables (`FITNESS_USER_ID` or `DEFAULT_USER_ID`)
 - Date/datetime parsing with ISO 8601 format handling
@@ -258,11 +254,15 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 
 **CRUD Operations** ([src/memory/crud.py](src/memory/crud.py)):
 - `upsert_item()`: PostgreSQL upsert for durable items using `ON CONFLICT`
-- `bulk_upsert_items()`: Batch upsert with single statement
 - `log_event()`: Insert events without keys (creates new entry each time)
 - `update_event()` / `delete_event()`: Event modifications by UUID
 - `get_overview()`: Returns context-filtered items with truncated content (200 words) for efficient scanning
+  - `planning` context: goals, program, week, plan (recent 5), preference, knowledge, log (recent 10)
+  - `upcoming` context: goals, week, plan (recent 5), log (recent 7)
+  - `knowledge` context: goals, program, preference, knowledge
+  - `history` context: goals, log (all), metric (all)
 - `get_items_by_keys()`: Fetch full content for specific items by (kind, key) tuples
+- `list_items()` / `list_events()`: Fetch filtered lists of items or events
 - `search_entries()`: Full-text search across all entries
 - Helper functions: `_clean_entry()` (output formatting with optional truncation), `_group_by_status()` (status grouping)
 
@@ -278,7 +278,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 ```
 User Request
     ↓
-FastMCP Tool (src/mcp_server.py:76-789)
+FastMCP Tool (5 tools in src/mcp_server.py)
     ↓
 get_session() context manager
     ↓
