@@ -84,6 +84,7 @@ def upsert(
     key: str,
     content: str,
     status: Optional[str] = None,
+    old_key: Optional[str] = None,
 ) -> dict:
     """Create or update an item with identity (has a key).
 
@@ -95,6 +96,9 @@ def upsert(
         key: Unique identifier within kind (e.g., 'bench-225', 'knee-health')
         content: Main content/description - PUT EVERYTHING HERE as natural text
         status: 'active' (default) or 'archived'
+        old_key: Optional - if provided, renames entry from old_key to key.
+                 If old_key doesn't exist, creates new entry with key.
+                 If both old_key and key exist, raises error.
 
     Examples:
         # Goal
@@ -117,6 +121,14 @@ def upsert(
             key='squat-8wk',
             content='Linear squat progression: 275→315lbs (+5/wk). 8 weeks starting Jan 1. Week 3 of 8. Deload week 4.'
         )
+
+        # Rename existing goal
+        upsert(
+            kind='goal',
+            key='squat-315-new',
+            old_key='squat-315',
+            content='Updated squat goal with new target'
+        )
     """
     user_id = _get_user_id()
 
@@ -128,6 +140,7 @@ def upsert(
             key=key,
             content=content,
             status=status,
+            old_key=old_key,
         )
 
 
@@ -199,26 +212,45 @@ def log(
 
 
 @mcp.tool
-def overview(truncate_length: int = 100) -> dict:
-    """Get lightweight overview of all data with truncated content.
+def overview(truncate_words: int = 200, context: Optional[str] = None) -> dict:
+    """Get context-aware overview of data with truncated content.
 
-    Returns ALL active items but truncates verbose content for efficient scanning.
+    Returns relevant active items based on context, truncates verbose content for efficient scanning.
     Use 'get' tool to fetch full content for specific items.
 
     Args:
-        truncate_length: Max chars before truncation (default 100)
+        truncate_words: Max words before truncation (default 200)
+        context: Optional context for filtering:
+                - 'planning': Goals, program, week, session, preferences, knowledge, recent workouts (2 weeks)
+                - 'upcoming': Goals, week, session, recent workouts (1 week)
+                - 'knowledge': Goals, program, preferences, knowledge
+                - 'history': Goals, all workouts, all metrics (for progress review)
+                - None: All data (default)
 
     Returns:
-        Organized dict with current_date, goals, plans, knowledge (truncated), etc.
+        Organized dict with current_date, goals, program, week, session, knowledge (truncated), etc.
+
+    Examples:
+        # Planning a workout - comprehensive context
+        overview(context='planning')
+
+        # Check what's coming up - focused view
+        overview(context='upcoming')
+
+        # Review constraints and preferences
+        overview(context='knowledge')
+
+        # Review entire training history and progress
+        overview(context='history')
 
     Workflow:
-        1. Call overview() to scan what exists
+        1. Call overview() with appropriate context to scan what exists
         2. Use get() to fetch full details for relevant items
         3. Or use search() to find specific content
     """
     user_id = _get_user_id()
     with get_session() as session:
-        result = crud.get_overview(session, user_id, truncate_length=truncate_length)
+        result = crud.get_overview(session, user_id, truncate_words=truncate_words, context=context)
         today = date.today()
         result['current_date'] = today.isoformat()
         result['current_day'] = today.strftime('%A')

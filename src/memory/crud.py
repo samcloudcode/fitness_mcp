@@ -43,19 +43,33 @@ def _short_ref(entry_id: uuid.UUID) -> str:
     return entry_id.hex[:8]
 
 
-def _clean_entry(entry: Entry, *, for_overview: bool = False, truncate_content: int = 0) -> dict[str, Any]:
+def _clean_entry(entry: Entry, *, for_overview: bool = False, truncate_content: int = 0, truncate_words: int = 0) -> dict[str, Any]:
     """Clean and format entry for output.
 
     Args:
         entry: The database entry to clean
         for_overview: Use minimal format for overview (drops timestamps, keeps only essential fields)
         truncate_content: If > 0, truncate content to this many characters (adds '...' if truncated)
+        truncate_words: If > 0, truncate content to this many words (takes precedence over truncate_content)
     """
     if for_overview:
         # Minimal format for overview: just key and content
         content = entry.content
-        if truncate_content > 0 and len(content) > truncate_content:
-            content = content[:truncate_content].rstrip() + "..."
+        truncated = False
+
+        if truncate_words > 0:
+            # Word-based truncation (more natural)
+            words = content.split()
+            if len(words) > truncate_words:
+                content = ' '.join(words[:truncate_words])
+                truncated = True
+        elif truncate_content > 0 and len(content) > truncate_content:
+            # Character-based truncation (fallback)
+            content = content[:truncate_content].rstrip()
+            truncated = True
+
+        if truncated:
+            content = content.rstrip() + "... [truncated - use get() for full content]"
 
         data: dict[str, Any] = {
             "key": entry.key,
@@ -120,15 +134,57 @@ def upsert_item(
     key: str,
     content: str,
     status: Optional[str] = None,
+    old_key: Optional[str] = None,
 ) -> dict:
-    """Upsert a durable keyed item by (user_id, kind, key). Everything goes in content."""
-    with logfire.span('upsert item', user_id=user_id, kind=kind, key=key):
+    """Upsert a durable keyed item by (user_id, kind, key). Everything goes in content.
+
+    Args:
+        old_key: If provided, attempts to rename an existing entry from old_key to key.
+                If old_key doesn't exist, performs regular upsert with key.
+                If both old_key and key exist, raises ValueError.
+    """
+    with logfire.span('upsert item', user_id=user_id, kind=kind, key=key, old_key=old_key):
         # Normalize status to binary
         if status is None:
             status = 'active'
         elif status not in ('active', 'archived'):
             status = 'archived' if status in ('archived', 'deleted', 'inactive') else 'active'
 
+        # Handle rename case
+        if old_key is not None and old_key != key:
+            # Check if old entry exists
+            old_entry = session.execute(
+                select(Entry).where(and_(
+                    Entry.user_id == user_id,
+                    Entry.kind == kind,
+                    Entry.key == old_key
+                ))
+            ).scalar_one_or_none()
+
+            if old_entry:
+                # Check if new key already exists (conflict)
+                new_entry_exists = session.execute(
+                    select(Entry).where(and_(
+                        Entry.user_id == user_id,
+                        Entry.kind == kind,
+                        Entry.key == key
+                    ))
+                ).scalar_one_or_none()
+
+                if new_entry_exists:
+                    raise ValueError(f"Cannot rename: entry with key '{key}' already exists")
+
+                # Rename: update the old entry with new key and content
+                old_entry.key = key
+                old_entry.content = content
+                old_entry.status = status
+                old_entry.updated_at = func.now()
+                session.commit()
+                session.refresh(old_entry)
+                return _serialize(old_entry)
+            # If old entry doesn't exist, fall through to regular upsert
+
+        # Regular upsert (no rename or old_key doesn't exist)
         stmt = pg_insert(Entry).values(
             user_id=user_id,
             kind=kind,
@@ -357,22 +413,45 @@ def search_entries(
 # Temporal context removed - put date/week info directly in content
 
 
-def get_overview(session: Session, user_id: str, truncate_length: int = 100) -> dict:
+def get_overview(
+    session: Session,
+    user_id: str,
+    truncate_words: int = 200,
+    context: Optional[str] = None
+) -> dict:
     """Return clean, organized overview with truncated content for scanning.
 
     Args:
-        truncate_length: Max chars for verbose content before truncation (default 100).
-                        Use get_items_detail() to fetch full content for specific keys.
+        truncate_words: Max words for verbose content before truncation (default 200).
+                       Use get() to fetch full content for specific items.
+        context: Optional context for filtering relevant data:
+                - 'planning': Goals, program, week, session, preferences, knowledge, recent workouts (2 weeks)
+                - 'upcoming': Goals, week, session, recent workouts (1 week)
+                - 'knowledge': Goals, program, preferences, knowledge
+                - 'history': Goals, all workouts, metrics (for progress review)
+                - None: All data (default behavior)
     """
-    with logfire.span('get overview', user_id=user_id, truncate_length=truncate_length):
+    with logfire.span('get overview', user_id=user_id, truncate_words=truncate_words, context=context):
+        # Define context-based kind filters
+        context_filters = {
+            'planning': {'goal', 'program', 'week', 'session', 'preference', 'knowledge', 'workout'},
+            'upcoming': {'goal', 'week', 'session', 'workout'},
+            'knowledge': {'goal', 'program', 'preference', 'knowledge'},
+            'history': {'goal', 'workout', 'metric'},
+        }
+
         # Exclude archived entries and issues from overview
-        stmt = select(Entry).where(
-            and_(
-                Entry.user_id == user_id,
-                Entry.kind != 'issue',
-                Entry.status != 'archived'
-            )
-        )
+        conditions = [
+            Entry.user_id == user_id,
+            Entry.kind != 'issue',
+            Entry.status != 'archived'
+        ]
+
+        # Add context-based kind filtering
+        if context and context in context_filters:
+            conditions.append(Entry.kind.in_(context_filters[context]))
+
+        stmt = select(Entry).where(and_(*conditions))
         entries = session.execute(stmt).scalars().all()
 
         by_kind: dict[str, list[Entry]] = defaultdict(list)
@@ -389,12 +468,16 @@ def get_overview(session: Session, user_id: str, truncate_length: int = 100) -> 
 
         overview: dict[str, Any] = {}
 
-        # Truncate content for verbose kinds (knowledge, principle, preference)
-        # Keep full content for concise kinds (goals, plans, current)
-        TRUNCATE_KINDS = {'knowledge', 'principle', 'preference', 'plan-step'}
-        TRUNCATE_LENGTH = truncate_length
+        # Determine workout limit based on context
+        workout_limit = 10  # default
+        if context == 'planning':
+            workout_limit = 14  # ~2 weeks
+        elif context == 'upcoming':
+            workout_limit = 7   # ~1 week
+        elif context == 'history':
+            workout_limit = 500  # All history (large limit)
 
-        # Strategies (long-term and short-term)
+        # Strategies (long-term and short-term) - TRUNCATED
         strategies = by_kind.get("strategy", [])
         if strategies:
             key_map = {(s.key or "").lower(): s for s in strategies}
@@ -403,9 +486,9 @@ def get_overview(session: Session, user_id: str, truncate_length: int = 100) -> 
 
             strategy_section: dict[str, Any] = {}
             if long_term:
-                strategy_section["long_term"] = _clean_entry(long_term, for_overview=True, truncate_content=TRUNCATE_LENGTH)
+                strategy_section["long_term"] = _clean_entry(long_term, for_overview=True, truncate_words=truncate_words)
             if short_term:
-                strategy_section["short_term"] = _clean_entry(short_term, for_overview=True, truncate_content=TRUNCATE_LENGTH)
+                strategy_section["short_term"] = _clean_entry(short_term, for_overview=True, truncate_words=truncate_words)
 
             if strategy_section:
                 overview["strategies"] = strategy_section
@@ -439,39 +522,56 @@ def get_overview(session: Session, user_id: str, truncate_length: int = 100) -> 
         if current:
             overview["current"] = [_clean_entry(item, for_overview=True) for item in _sorted(current)]
 
+        # Program (current program) - TRUNCATED
+        programs = by_kind.get("program", [])
+        if programs:
+            overview["program"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in _sorted(programs)]
+
+        # Week (current week plan) - full content
+        weeks = by_kind.get("week", [])
+        if weeks:
+            overview["week"] = [_clean_entry(item, for_overview=True) for item in _sorted(weeks)]
+
+        # Session (planned sessions) - full content
+        sessions = by_kind.get("session", [])
+        if sessions:
+            overview["session"] = [_clean_entry(item, for_overview=True) for item in _sorted(sessions)]
+
         # Preferences (simple list) - TRUNCATED
         preferences = by_kind.get("preference", [])
         if preferences:
-            overview["preferences"] = [_clean_entry(item, for_overview=True, truncate_content=TRUNCATE_LENGTH) for item in _sorted(preferences)]
+            overview["preferences"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in _sorted(preferences)]
 
         # Knowledge (simple list) - TRUNCATED
         knowledge = by_kind.get("knowledge", [])
         if knowledge:
-            overview["knowledge"] = [_clean_entry(item, for_overview=True, truncate_content=TRUNCATE_LENGTH) for item in _sorted(knowledge)]
+            overview["knowledge"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in _sorted(knowledge)]
 
         # Principles (simple list) - TRUNCATED
         principles = by_kind.get("principle", [])
         if principles:
-            overview["principles"] = [_clean_entry(item, for_overview=True, truncate_content=TRUNCATE_LENGTH) for item in _sorted(principles)]
+            overview["principles"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in _sorted(principles)]
 
-        # Recent workouts (last 10 only) - TRUNCATED
+        # Recent workouts (context-aware limit) - TRUNCATED
         workouts = by_kind.get("workout", [])
         if workouts:
             recent = sorted(
                 workouts,
                 key=lambda item: (item.occurred_at or item.created_at or datetime.min),
                 reverse=True,
-            )[:10]
-            overview["recent_workouts"] = [_clean_entry(item, for_overview=True, truncate_content=TRUNCATE_LENGTH) for item in recent]
+            )[:workout_limit]
+            overview["recent_workouts"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in recent]
 
-        # Recent metrics (last 10 only) - full content (already short)
+        # Recent metrics - full content (already short)
+        # Limit based on context: history mode shows all, default shows last 10
         metrics = by_kind.get("metric", [])
         if metrics:
+            metric_limit = 500 if context == 'history' else 10
             recent = sorted(
                 metrics,
                 key=lambda item: (item.occurred_at or item.created_at or datetime.min),
                 reverse=True,
-            )[:10]
+            )[:metric_limit]
             overview["recent_metrics"] = [_clean_entry(item, for_overview=True) for item in recent]
 
         # Notes (last 5 only) - TRUNCATED
@@ -482,6 +582,6 @@ def get_overview(session: Session, user_id: str, truncate_length: int = 100) -> 
                 key=lambda item: (item.occurred_at or item.created_at or datetime.min),
                 reverse=True,
             )[:5]
-            overview["recent_notes"] = [_clean_entry(item, for_overview=True, truncate_content=TRUNCATE_LENGTH) for item in recent]
+            overview["recent_notes"] = [_clean_entry(item, for_overview=True, truncate_words=truncate_words) for item in recent]
 
         return overview

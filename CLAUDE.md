@@ -18,8 +18,8 @@ This is a simplified fitness tracking MCP server following Claude Code's philoso
 ### Core Concepts
 
 **Two Data Patterns**:
-- **Items** (has `key`): Durable things you update - goals, plans, knowledge. Same key = replace.
-- **Events** (no `key`): Timestamped occurrences - workouts, metrics, notes. Always creates new.
+- **Items** (has `key`): Durable things you update - goals, program, week, plan, knowledge, preference. Same key = replace.
+- **Events** (no `key`): Timestamped occurrences - logs, metrics, notes. Always creates new.
 
 **Simplified Schema** (9 columns, down from 14):
 - Removed: `priority`, `tags`, `parent_key`, `due_date`, `attrs` (everything goes in content now)
@@ -96,8 +96,8 @@ source .env && psql "$DATABASE_URL" -c "SELECT kind, COUNT(*) as count FROM publ
 # Check for duplicate keys (should be 0)
 source .env && psql "$DATABASE_URL" -c "SELECT kind, key, COUNT(*) FROM public.entries WHERE status = 'active' AND key IS NOT NULL GROUP BY kind, key HAVING COUNT(*) > 1;"
 
-# View recent workouts (events have NULL key)
-source .env && psql "$DATABASE_URL" -c "SELECT occurred_at, LEFT(content, 80) FROM public.entries WHERE kind = 'workout' AND status = 'active' ORDER BY occurred_at DESC LIMIT 10;"
+# View recent logs (events have NULL key)
+source .env && psql "$DATABASE_URL" -c "SELECT occurred_at, LEFT(content, 80) FROM public.entries WHERE kind = 'log' AND status = 'active' ORDER BY occurred_at DESC LIMIT 10;"
 
 # Backup data to CSV
 source .env && psql "$DATABASE_URL" -c "\copy (SELECT * FROM public.entries) TO 'backup_$(date +%Y%m%d_%H%M%S).csv' CSV HEADER"
@@ -138,14 +138,18 @@ upsert(kind='goal', key='bench-225',
 
 # 2. LOG - Timestamped events
 # Full workout details in content, one line
-log(kind='workout', content='Lower: Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185')
+log(kind='log', content='Lower: Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185')
 
-# 3. OVERVIEW - Scan everything (truncated)
-overview()  # Returns all ACTIVE items (archived excluded), verbose content truncated to 100 chars
+# 3. OVERVIEW - Context-aware scanning (truncated to 200 words)
+overview()  # All active items (default)
+overview(context='planning')  # Planning mode: goals, program, week, plan, preferences, knowledge, logs (2 weeks)
+overview(context='upcoming')  # Upcoming mode: goals, week, plan, logs (1 week)
+overview(context='knowledge')  # Knowledge mode: goals, program, preferences, knowledge
+overview(context='history')  # History mode: goals, all logs, all metrics (progress review)
 
 # 4. GET - Pull full details
 get(items=[{'kind': 'knowledge', 'key': 'knee-health-alignment'}])  # Specific items
-get(kind='workout', limit=14)  # Last 2 weeks of workouts (safety first!)
+get(kind='log', limit=14)  # Last 2 weeks of logs (safety first!)
 
 # 5. SEARCH - Find by content
 search('knee pain', kind='knowledge')
@@ -181,9 +185,9 @@ upsert(
     content='Mon: Upper. Tue: Easy run. Wed: Lower. Thu: OFF (travel). Fri: Tempo. Sat: Full body. Sun: Long run. Why: Travel Thu means 6 sessions not 7, compensate Sat volume.'
 )
 
-# 4. SESSION - Today's planned workout
+# 4. PLAN - Today's planned workout
 upsert(
-    kind='session',
+    kind='plan',
     key='2025-10-22-strength',
     content='6am Upper: Bench 4x10 @ 185 (volume for bench-225), OHP 3x12 @ 115 (shoulder health), rows 3x12. Why: Hypertrophy phase. OHP light due to shoulder tweak.'
 )
@@ -203,10 +207,11 @@ upsert(
 )
 
 # Log progress
-log(kind='workout', content='Bench 3x5 @ 205lbs RPE 7')
+log(kind='log', content='Bench 3x5 @ 205lbs RPE 7')
 
 # Check status
-overview()  # See all goals
+overview()  # See all goals and context
+overview(context='planning')  # See everything needed for planning workouts
 ```
 
 **Knowledge Management:**
@@ -232,7 +237,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 - New key = insert new item
 - Atomic operations with automatic `updated_at` timestamp
 
-**Event Immutability**: Events (workouts, metrics, notes) have no `key` and are identified by UUID. Updates via `update_event()` and `delete_event()` tools using the UUID.
+**Event Immutability**: Events (logs, metrics, notes) have no `key` and are identified by UUID. Updates via `update_event()` and `delete_event()` tools using the UUID.
 
 **Full-Text Search**: PostgreSQL FTS using generated tsvector column on `(key + content)` with GIN index. Searches use `plainto_tsquery` for user-friendly query parsing.
 
@@ -256,7 +261,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 - `bulk_upsert_items()`: Batch upsert with single statement
 - `log_event()`: Insert events without keys (creates new entry each time)
 - `update_event()` / `delete_event()`: Event modifications by UUID
-- `get_overview()`: Returns ALL items with truncated content (100 chars) for efficient scanning
+- `get_overview()`: Returns context-filtered items with truncated content (200 words) for efficient scanning
 - `get_items_by_keys()`: Fetch full content for specific items by (kind, key) tuples
 - `search_entries()`: Full-text search across all entries
 - Helper functions: `_clean_entry()` (output formatting with optional truncation), `_group_by_status()` (status grouping)
@@ -288,37 +293,48 @@ Result serialization & return
 
 ### Important Implementation Details
 
-**Overview Truncation Pattern**: `get_overview()` returns ALL active items but truncates verbose content to 100 chars (knowledge, principles, preferences, workouts). This enables efficient context scanning without loading full entries. Use `get()` to fetch complete content for specific items. Goals/program/week/session/current show full content (should be concise).
+**Overview Truncation Pattern**: `get_overview()` returns context-filtered active items and truncates verbose content to 200 words (knowledge, preferences, logs, program). This enables efficient context scanning without loading full entries. Use `get()` to fetch complete content for specific items. Goals/week/plan show full content (should be concise). Use context parameter to filter relevant data: 'planning' for comprehensive workout planning, 'upcoming' for near-term focus, 'knowledge' for constraints and preferences.
 
 **Pull-Based Context Composition**: LLMs should scan truncated overview, then pull full details only for relevant items using `get()` or `search()`. Multiple small queries >> one giant dump.
 
-**Content Brevity Guidelines**: Store concise summaries with "why" context:
-- Goals: 20-50 words with priority and rationale ("Bench 225x5 by June. Priority: High. Why: Rugby performance.")
-- Program: 80-150 words explaining strategy across all goals
-- Week: 50-100 words with daily schedule and adjustments
-- Session: 40-80 words with exercises and rationale
-- Knowledge: 30-60 words, user-specific observations only (not general science LLMs already know)
-- Workouts: One line with all details ("Lower: Squats 5x5 @ 245 RPE 7, RDL 3x8 @ 185")
+**Content Brevity Guidelines**: Store concise but complete entries with "why" context:
+- Goals: 100-200 chars with current state, priority, deadline, and rationale
+- Program: 400-600 chars explaining long-term vision, current focus, weekly structure
+- Week: 200-400 chars with daily schedule and adjustments
+- Plan: 200-400 chars with exercises and rationale for specific workout
+- Knowledge: 200-400 chars typical, 600 max - user-specific observations only (not general science LLMs already know)
+- Preference: 200-400 chars for equipment, style, timing, recovery
+- Logs: As much detail as provided - one log per workout session
+- Metric: 50-200 chars for point-in-time measurements
 - See [FITNESS_COACH_INSTRUCTIONS_SIMPLE.md](FITNESS_COACH_INSTRUCTIONS_SIMPLE.md) for detailed guidelines
 
 **Status Values**: Enforced binary constraint - only `active` or `archived` allowed. Overview **excludes** `archived` items for clean working context.
 
 **Timestamp Handling**:
-- `occurred_at`: For events (workouts, metrics, notes) - when the event happened
+- `occurred_at`: For events (logs, metrics, notes) - when the event happened
 - `created_at` / `updated_at`: Automatic timestamps for all entries
 - Due dates, deadlines: Put directly in content ("Due: 2025-12-31")
 
 **Relationships**: Express in content as natural text:
-- "Part of squat-progression plan"
+- "Part of squat-progression program"
 - "Week 3 of 8-week cycle"
 - "Relates to knee-health knowledge entry"
 
-**Kind Values**: No enforced enum - core kinds are:
-- **With keys (items)**: `goal`, `program`, `week`, `session`, `knowledge`, `preference`, `principle`, `current`, `strategy`
-- **Without keys (events)**: `workout`, `metric`, `note`
-- **Deprecated**: `plan`, `plan-step`, `workout-plan` (replaced by `program`, `week`, `session`)
+**Kind Values**: Clean 9-kind architecture:
+- **Items (with keys)**: `goal`, `program`, `week`, `plan`, `knowledge`, `preference`
+  - Same key = update existing (upsert pattern)
+  - Goals include current state, priority, deadline, why
+  - Program is single `current-program` entry with long-term vision + current focus
+  - Week/plan are dated (`2025-week-43`, `2025-10-28-upper`)
+  - Knowledge is user-specific observations only (no general principles)
+  - Preference for equipment, style, timing, recovery
+- **Events (no keys, UUID only)**: `log`, `metric`, `note`
+  - Always creates new entry (immutable timeline)
+  - Logs are completed workouts with max detail
+  - Metrics are point-in-time measurements
+  - Notes are timestamped observations
 
-New kinds can be added without schema changes.
+No enforced enum - new kinds can be added without schema changes, but stick to these 9 for simplicity.
 
 **User Isolation**: All queries filter by `user_id` from environment variable. Multi-tenant by design but typically single-user in practice.
 
@@ -351,36 +367,45 @@ Optional:
 [FITNESS_COACH_INSTRUCTIONS_SIMPLE.md](FITNESS_COACH_INSTRUCTIONS_SIMPLE.md) contains comprehensive guidance for LLMs using this MCP server. Key points:
 
 **Critical Patterns**:
-- **Two-Phase Rule**: Propose workouts/plans first, save ONLY after user approval
-  - Exception: User provides completed info ("I just did squats") → save immediately
-- Always call `overview()` at session start - returns ALL active items (archived excluded)
-- Verbose content truncated to 100 chars - use `get()` to pull full details
+- **Two-Phase Rule**: Propose plans first, save ONLY after user approval
+  - Exception: User provides completed info ("I just did squats") → log immediately
+- Always call `overview()` with appropriate context at session start:
+  - `overview(context='planning')` for workout planning (comprehensive)
+  - `overview(context='upcoming')` for near-term focus
+  - `overview(context='knowledge')` for constraints/preferences
+  - `overview(context='history')` for progress review (all logs/metrics)
+  - `overview()` for everything (default)
+- Verbose content truncated to 200 words - use `get()` to pull full details
 - Use `upsert()` for durable data (same key = update, never duplicates)
 - Use `log()` for timestamped events (creates new each time)
 - Archive items instead of deleting (preserves history)
 
 **Data Fetching Rules (Safety First)**:
 - **Before programming workouts**: ALWAYS fetch ALL knowledge (injuries/limitations)
-- **Recent training context**: Fetch 2 weeks of workouts (`limit=14`, usually 6-12 sessions)
-- **Active programs**: Fetch all plans to understand current training phase
+- **Recent training context**: Fetch 2 weeks of logs (`limit=14`, usually 6-12 sessions)
+- **Active program**: Review program to understand current training phase
 - Better to over-fetch safety info than miss critical limitations
 
-**Content Brevity & "Everything in Content" Principle**:
-- Goals: 10-30 words ("Bench 225lbs x5 by March. Started at 185 in Sept.")
-- Knowledge: 20-50 words, user-specific observations only
-- Plans: 30-60 words with dates and progression details
-- Workouts: One line ("Lower: Squats 5x5 @ 245 RPE 7, RDL 3x8 @ 185")
-- **Put everything in content field** - use attrs only for programmatic access (rare)
+**Content Guidelines & "Everything in Content" Principle**:
+- Goals: 100-200 chars with current state, priority, deadline, why
+- Knowledge: 200-400 chars typical, 600 max - user-specific observations only
+- Program: 400-600 chars with long-term vision, current focus, weekly structure
+- Week: 200-400 chars with daily schedule and adjustments
+- Plan: 200-400 chars with exercises and rationale
+- Logs: As much detail as provided - one log per workout session
+- **Put everything in content field** - no attrs needed
 
 **Common Mistakes to Avoid**:
-- **Saving before approval**: Propose workouts/plans first, save ONLY after user agrees
-- Over-structuring data in attrs instead of natural text in content
+- **Saving before approval**: Propose plans first, save ONLY after user agrees
 - Creating duplicate items instead of updating existing ones (same key = update)
-- Storing textbook knowledge instead of user-specific observations (20-50 words max)
+- Storing textbook knowledge instead of user-specific observations (200-400 chars)
 - Missing safety checks: ALWAYS fetch all knowledge before programming workouts
 
 **Workflow Examples**:
-- **User wants workout**: `overview()` → `get(kind='knowledge')` → `get(kind='workout', limit=14)` → `get(items=[{'kind': 'program', 'key': 'current-program'}])` → **Propose (don't save)** → Get approval → `log()`
-- **User provides info**: Save immediately with `upsert()` or `log()`
-- **User asks question**: `overview()` → `get()` full details → Answer
-- **Program/week/session updates**: Update immediately when agreed with `upsert()`
+- **User wants workout**: `overview(context='planning')` → Review goals, program, week, plan, knowledge (2 weeks logs) → **Propose (don't save)** → Get approval → `upsert()` plan + user does workout → `log()` what happened
+- **User asks "what's coming up"**: `overview(context='upcoming')` → See week, plans, recent logs (1 week)
+- **User asks about progress**: `overview(context='history')` → See all logs and metrics over time → Analyze trends
+- **User provides completed workout**: Log immediately with `log()`
+- **User provides goal/knowledge**: Save immediately with `upsert()`
+- **User asks question**: `overview(context='knowledge')` → See constraints, preferences → `get()` full details if needed → Answer
+- **Program/week/plan updates**: Update immediately when agreed with `upsert()`
