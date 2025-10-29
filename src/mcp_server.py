@@ -158,32 +158,30 @@ def log(
     occurred_at: Optional[str] = None,
     event_id: Optional[str] = None,
 ) -> dict:
-    """Log a timestamped event (no key, creates new entry) OR update existing event by ID.
+    """Log timestamped metrics and notes (no keys, immutable events).
 
-    Use for events with 3 event kinds: log, metric, note. Always creates new unless event_id provided.
+    IMPORTANT: For workout logs, use upsert() with kind='log' and date-based keys instead.
+    This tool is ONLY for metrics and notes that don't need keys.
 
     Args:
-        kind: Type of event (log, metric, note)
+        kind: Type of event ('metric' or 'note' - NOT 'log')
         content: Description of the event - PUT EVERYTHING HERE as natural text
         occurred_at: ISO 8601 timestamp (defaults to now)
         event_id: If provided, updates existing event instead of creating new
 
     Examples:
-        # Log workout - everything in content
-        log(
-            kind='log',
-            content='Lower (52min): Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185lbs RPE 6'
-        )
-
-        # Update existing event
-        log(
-            event_id='abc123...',
-            content='Lower (52min): Squats 5x5 @ 230lbs RPE 7, RDL 3x8 @ 185lbs RPE 6'  # Corrected weight
-        )
-
         # Metrics (one per entry for better trend tracking)
         log(kind='metric', content='Weight: 71kg')
         log(kind='metric', content='Body fat: 9%')  # Separate entry, same timestamp
+
+        # Notes (quick observations)
+        log(kind='note', content='Knee felt tight during warmup, loosened up by set 3')
+
+        # Update existing metric/note by ID
+        log(event_id='abc123...', kind='metric', content='Corrected: Weight 72kg')
+
+        # For workout logs, use upsert() instead:
+        # upsert(kind='log', key='2025-10-29-upper', content='Upper: Full workout details...')
     """
     user_id = _get_user_id()
 

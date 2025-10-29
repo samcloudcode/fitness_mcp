@@ -300,7 +300,7 @@ def log_event(
             key=None,  # Events don't have keys
             content=content,
             status='active',  # Events are always active initially
-            occurred_at=occurred_at,
+            occurred_at=occurred_at or datetime.now(),  # Default to now if not provided
         )
         session.add(entry)
         session.commit()

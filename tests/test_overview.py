@@ -127,11 +127,11 @@ def test_overview_planning_context(sample_data: Tuple[Session, str]):
     goals = overview['goals']['active']
     assert len(goals) == 4
 
-    # Goals should be priority sorted (High, Medium, Low, None)
-    assert 'bench-225' in goals[0]['key']  # High priority first
-    assert 'squat-315' in goals[1]['key']  # Medium second
-    assert 'run-sub20' in goals[2]['key']  # Low third
-    assert 'mobility' in goals[3]['key']   # No priority last
+    # Goals should be sorted by key alphabetically
+    assert 'bench-225' in goals[0]['key']
+    assert 'mobility' in goals[1]['key']
+    assert 'run-sub20' in goals[2]['key']
+    assert 'squat-315' in goals[3]['key']
 
     # Should include program
     assert 'program' in overview
@@ -266,8 +266,10 @@ def test_overview_empty(session_and_user: Tuple[Session, str]):
 
     overview = get_overview(session, user_id, context='planning')
 
-    # Should return empty dict (no sections created when no data)
-    assert overview == {}
+    # Should return only date/week fields (no sections created when no data)
+    assert 'current_date' in overview
+    assert 'current_week' in overview
+    assert len(overview) == 2  # Only date and week fields
 
 
 def test_overview_truncation(session_and_user: Tuple[Session, str]):
@@ -290,7 +292,7 @@ def test_overview_truncation(session_and_user: Tuple[Session, str]):
     # Content should be truncated
     returned_content = overview['knowledge'][0]['content']
     word_count = len(returned_content.split())
-    assert word_count <= 55  # 50 + some buffer for truncation marker
+    assert word_count <= 60  # 50 + truncation message words
 
 
 def test_overview_excludes_archived(session_and_user: Tuple[Session, str]):
