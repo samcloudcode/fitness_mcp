@@ -4,21 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (5 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
+This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (4 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
 
-### 🎯 5 Core Tools (Down from 17)
+### 🎯 4 Core Tools (Down from 17)
 
-1. **`upsert`** - Create/update items with identity (has key)
-2. **`log`** - Record timestamped events (no key) or update by ID
-3. **`overview`** - Lightweight scan of all data (truncated)
-4. **`get`** - Pull full details by keys or filters
-5. **`archive`** - Soft delete (set status='archived')
+1. **`upsert`** - Create/update ALL entries (use key for items, empty key for metrics/notes)
+2. **`overview`** - Lightweight scan of all data (truncated)
+3. **`get`** - Pull full details by keys or filters
+4. **`archive`** - Soft delete (set status='archived')
 
 ### Core Concepts
 
 **Two Data Patterns**:
-- **Items** (has `key`): Durable things you update - goals, program, week, plan, knowledge, preference. Same key = replace.
-- **Events** (no `key`): Timestamped occurrences - logs, metrics, notes. Always creates new.
+- **Items** (has `key`): Durable things you update - goals, program, week, plan, knowledge, preference, log (workout logs). Same key = replace.
+- **Events** (no `key`): Timestamped occurrences - metrics, notes. Always creates new (use empty key '').
 
 **Simplified Schema** (9 columns, down from 14):
 - Removed: `priority`, `tags`, `parent_key`, `due_date`, `attrs` (everything goes in content now)
@@ -51,13 +50,13 @@ uv run pytest -k "test_upsert"
 
 ### Running the Server
 ```bash
-# Start the simplified MCP server (5 tools)
+# Start the simplified MCP server (4 tools)
 uv run python -m src.mcp_server
 
 # Or use the script entry point
 uv run memory-server
 
-# Test server responds (5 second timeout)
+# Test server responds (4 second timeout)
 timeout 5s uv run python -m src.mcp_server
 ```
 
@@ -124,33 +123,33 @@ uv add --dev <package-name>
 
 ## Simplified Tool Usage Examples
 
-### Quick Start - The 6 Tools
+### Quick Start - The 4 Tools
 
 ```python
-# 1. UPSERT - Items with identity
-# Put EVERYTHING in content field - include "why" context!
+# 1. UPSERT - Create/update ALL entries
+# Items with keys (goals, logs, knowledge, etc):
 upsert(kind='goal', key='bench-225',
        content='Bench 225x5 by March (currently 185x5). Priority: High. Why: Foundation for rugby performance.')
 
-# 2. LOG - Timestamped events
-# Full workout details in content, one line
-log(kind='log', content='Lower: Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185')
+# Workout logs with date keys:
+upsert(kind='log', key='2025-10-29-lower', content='Lower: Squats 5x5 @ 225lbs RPE 7, RDL 3x8 @ 185')
 
-# 3. OVERVIEW - Context-aware scanning (truncated to 200 words)
+# Metrics/notes (empty key = no key):
+upsert(kind='metric', key='', content='Weight: 71kg')
+upsert(kind='note', key='', content='Knee felt tight during warmup')
+
+# 2. OVERVIEW - Context-aware scanning (truncated to 200 words)
 overview()  # All active items (default)
 overview(context='planning')  # Planning mode: goals, program, week, plan, preferences, knowledge, logs (2 weeks)
 overview(context='upcoming')  # Upcoming mode: goals, week, plan, logs (1 week)
 overview(context='knowledge')  # Knowledge mode: goals, program, preferences, knowledge
 overview(context='history')  # History mode: goals, all logs, all metrics (progress review)
 
-# 4. GET - Pull full details
+# 3. GET - Pull full details
 get(items=[{'kind': 'knowledge', 'key': 'knee-health-alignment'}])  # Specific items
 get(kind='log', limit=14)  # Last 2 weeks of logs (safety first!)
 
-# 5. SEARCH - Find by content
-search('knee pain', kind='knowledge')
-
-# 6. ARCHIVE - Soft delete
+# 4. ARCHIVE - Soft delete
 archive(kind='goal', key='old-goal')  # Specific item
 archive(kind='preference')  # Bulk archive all active preferences
 ```
@@ -202,8 +201,8 @@ upsert(
     content='Bench 225x5 by March (currently 185x5). Priority: High. Why: Strength foundation for sport performance.'
 )
 
-# Log progress
-log(kind='log', content='Bench 3x5 @ 205lbs RPE 7')
+# Log workout progress (use upsert with date key for workout logs)
+upsert(kind='log', key='2025-10-29-upper', content='Bench 3x5 @ 205lbs RPE 7')
 
 # Check status
 overview()  # See all goals and context
@@ -220,7 +219,6 @@ upsert(
 )
 
 # Find relevant info
-search('knee pain')  # When you don't know the key
 get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the key
 ```
 
@@ -233,7 +231,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 - New key = insert new item
 - Atomic operations with automatic `updated_at` timestamp
 
-**Event Immutability**: Events (logs, metrics, notes) have no `key` and are identified by UUID. Updates via `update_event()` and `delete_event()` tools using the UUID.
+**Event Immutability**: Events (metrics, notes) have no `key` and are identified by UUID. Workout logs should use `upsert()` with date-based keys for the one-log-per-workout pattern.
 
 **Full-Text Search**: PostgreSQL FTS using generated tsvector column on `(key + content)` with GIN index. Searches use `plainto_tsquery` for user-friendly query parsing.
 
@@ -246,7 +244,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 ### Core Components
 
 **MCP Server** ([src/mcp_server.py](src/mcp_server.py)):
-- 6 FastMCP tools for fitness tracking: `upsert`, `log`, `overview`, `get`, `search`, `archive`
+- 4 FastMCP tools for fitness tracking: `upsert`, `overview`, `get`, `archive`
 - Context managers (`get_session()`) for database session lifecycle
 - User ID resolution from environment variables (`FITNESS_USER_ID` or `DEFAULT_USER_ID`)
 - Date/datetime parsing with ISO 8601 format handling
@@ -278,7 +276,7 @@ get(items=[{'kind': 'knowledge', 'key': 'knee-health'}])  # When you know the ke
 ```
 User Request
     ↓
-FastMCP Tool (5 tools in src/mcp_server.py)
+FastMCP Tool (4 tools in src/mcp_server.py)
     ↓
 get_session() context manager
     ↓
@@ -295,7 +293,7 @@ Result serialization & return
 
 **Overview Truncation Pattern**: `get_overview()` returns context-filtered active items and truncates verbose content to 200 words (knowledge, preferences, logs, program). This enables efficient context scanning without loading full entries. Use `get()` to fetch complete content for specific items. Goals/week/plan show full content (should be concise). Use context parameter to filter relevant data: 'planning' for comprehensive workout planning, 'upcoming' for near-term focus, 'knowledge' for constraints and preferences.
 
-**Pull-Based Context Composition**: LLMs should scan truncated overview, then pull full details only for relevant items using `get()` or `search()`. Multiple small queries >> one giant dump.
+**Pull-Based Context Composition**: LLMs should scan truncated overview, then pull full details only for relevant items using `get()`. Multiple small queries >> one giant dump.
 
 **Content Brevity Guidelines**: Store concise but complete entries with "why" context:
 - Goals: 100-200 chars with current state, priority, deadline, and rationale
@@ -321,16 +319,16 @@ Result serialization & return
 - "Relates to knee-health knowledge entry"
 
 **Kind Values**: Clean 9-kind architecture:
-- **Items (with keys)**: `goal`, `program`, `week`, `plan`, `knowledge`, `preference`
+- **Items (with keys)**: `goal`, `program`, `week`, `plan`, `knowledge`, `preference`, `log` (workout logs)
   - Same key = update existing (upsert pattern)
   - Goals include current state, priority, deadline, why
   - Program is single `current-program` entry with long-term vision + current focus
   - Week/plan are dated (`2025-week-43`, `2025-10-28-upper`)
   - Knowledge is user-specific observations only (no general principles)
   - Preference for equipment, style, timing, recovery
-- **Events (no keys, UUID only)**: `log`, `metric`, `note`
+  - **Logs with date keys** (`2025-10-29-upper`) for one-log-per-workout pattern
+- **Events (no keys, UUID only)**: `metric`, `note`
   - Always creates new entry (immutable timeline)
-  - Logs are completed workouts with max detail
   - Metrics are point-in-time measurements
   - Notes are timestamped observations
 
@@ -376,8 +374,7 @@ Optional:
   - `overview(context='history')` for progress review (all logs/metrics)
   - `overview()` for everything (default)
 - Verbose content truncated to 200 words - use `get()` to pull full details
-- Use `upsert()` for durable data (same key = update, never duplicates)
-- Use `log()` for timestamped events (creates new each time)
+- Use `upsert()` for ALL data (same key = update for items, empty key for events)
 - Archive items instead of deleting (preserves history)
 
 **Data Fetching Rules (Safety First)**:
@@ -402,10 +399,10 @@ Optional:
 - Missing safety checks: ALWAYS fetch all knowledge before programming workouts
 
 **Workflow Examples**:
-- **User wants workout**: `overview(context='planning')` → Review goals, program, week, plan, knowledge (2 weeks logs) → **Propose (don't save)** → Get approval → `upsert()` plan + user does workout → `log()` what happened
+- **User wants workout**: `overview(context='planning')` → Review goals, program, week, plan, knowledge (2 weeks logs) → **Propose (don't save)** → Get approval → `upsert()` plan + user does workout → `upsert()` log
 - **User asks "what's coming up"**: `overview(context='upcoming')` → See week, plans, recent logs (1 week)
 - **User asks about progress**: `overview(context='history')` → See all logs and metrics over time → Analyze trends
-- **User provides completed workout**: Log immediately with `log()`
+- **User provides completed workout**: Log immediately with `upsert(kind='log', key='YYYY-MM-DD-type')`
 - **User provides goal/knowledge**: Save immediately with `upsert()`
 - **User asks question**: `overview(context='knowledge')` → See constraints, preferences → `get()` full details if needed → Answer
 - **Program/week/plan updates**: Update immediately when agreed with `upsert()`

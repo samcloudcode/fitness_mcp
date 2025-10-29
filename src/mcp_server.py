@@ -1,5 +1,5 @@
 """
-Simplified Fitness MCP Server - 6 Core Tools
+Simplified Fitness MCP Server - 4 Core Tools
 
 Following Claude Code's philosophy: minimal tool surface, maximum flexibility.
 Everything goes in content as natural text. Only 2 status values (active/archived).
@@ -75,7 +75,7 @@ def _get_user_id() -> str:
 
 
 # ====================
-# 6 CORE TOOLS
+# 4 CORE TOOLS
 # ====================
 
 @mcp.tool
@@ -86,14 +86,21 @@ def upsert(
     status: Optional[str] = None,
     old_key: Optional[str] = None,
 ) -> dict:
-    """Create or update an item with identity (has a key).
+    """Create or update entries (use for all kinds).
 
-    Use for durable data with 6 item kinds: goal, program, week, plan, knowledge, preference.
-    Same key = update existing item. Everything goes in content as natural text.
+    For items with keys (goal, program, week, plan, log, knowledge, preference):
+    - Same key = update existing item
+    - Use date-based keys for logs: '2025-10-29-upper'
+
+    For events without keys (metric, note):
+    - Pass empty string '' for key to create immutable timestamped entries
+    - Each call creates a new entry
+
+    Everything goes in content as natural text.
 
     Args:
-        kind: Type of item (goal, program, week, plan, knowledge, preference)
-        key: Unique identifier within kind (e.g., 'bench-225', 'current-program', '2025-week-43')
+        kind: Type of entry (goal, program, week, plan, log, knowledge, preference, metric, note)
+        key: Unique identifier within kind (use '' for metrics/notes)
         content: Main content/description - PUT EVERYTHING HERE as natural text
         status: 'active' (default) or 'archived'
         old_key: Optional - if provided, renames entry from old_key to key.
@@ -101,116 +108,64 @@ def upsert(
                  If both old_key and key exist, raises error.
 
     Examples:
-        # Goal with priority and rationale
+        # Goal with priority in key
         upsert(
             kind='goal',
-            key='bench-225',
-            content='Bench 225x5 by June (currently 185x5). Priority: High. Why: Foundation for rugby strength.'
+            key='p1-bench-225',
+            content='Bench 225x5 by June. Currently 185x5.'
+        )
+
+        # Log (one per workout, can update incrementally)
+        upsert(
+            kind='log',
+            key='2025-10-29-upper',
+            content='Upper (52min): Bench 4x10 @ 185 RPE 7, OHP 3x12 @ 115 RPE 6.'
+        )
+
+        # Metric (no key - use empty string)
+        upsert(
+            kind='metric',
+            key='',
+            content='Weight: 71kg'
+        )
+
+        # Note (no key - use empty string)
+        upsert(
+            kind='note',
+            key='',
+            content='Knee felt tight during warmup'
         )
 
         # Program (single living document)
         upsert(
             kind='program',
             key='current-program',
-            content='As of Oct 2025: Strength primary 4x/week (bench-225, squat-315), running secondary 3x/week. Why: Rugby season April needs strength peak.'
-        )
-
-        # Week schedule
-        upsert(
-            kind='week',
-            key='2025-week-43',
-            content='Mon: Upper. Tue: Run. Wed: Lower. Thu: OFF (travel). Why: Travel Thu means 6 sessions not 7.'
-        )
-
-        # Knowledge with specific focus
-        upsert(
-            kind='knowledge',
-            key='knee-health-alignment',
-            content='Knee tracking: keep knees over toes, wider stance eliminates pain. Why: Activates glute med, prevents knee cave.'
-        )
-
-        # Rename existing goal
-        upsert(
-            kind='goal',
-            key='squat-315-new',
-            old_key='squat-315',
-            content='Updated squat goal with new target'
+            content='As of Oct 2025: Strength 4x/week, running 3x/week.'
         )
     """
     user_id = _get_user_id()
 
     with get_session() as session:
-        return crud.upsert_item(
-            session,
-            user_id,
-            kind=kind,
-            key=key,
-            content=content,
-            status=status,
-            old_key=old_key,
-        )
-
-
-@mcp.tool
-def log(
-    kind: str,
-    content: str,
-    occurred_at: Optional[str] = None,
-    event_id: Optional[str] = None,
-) -> dict:
-    """Log timestamped metrics and notes (no keys, immutable events).
-
-    IMPORTANT: For workout logs, use upsert() with kind='log' and date-based keys instead.
-    This tool is ONLY for metrics and notes that don't need keys.
-
-    Args:
-        kind: Type of event ('metric' or 'note' - NOT 'log')
-        content: Description of the event - PUT EVERYTHING HERE as natural text
-        occurred_at: ISO 8601 timestamp (defaults to now)
-        event_id: If provided, updates existing event instead of creating new
-
-    Examples:
-        # Metrics (one per entry for better trend tracking)
-        log(kind='metric', content='Weight: 71kg')
-        log(kind='metric', content='Body fat: 9%')  # Separate entry, same timestamp
-
-        # Notes (quick observations)
-        log(kind='note', content='Knee felt tight during warmup, loosened up by set 3')
-
-        # Update existing metric/note by ID
-        log(event_id='abc123...', kind='metric', content='Corrected: Weight 72kg')
-
-        # For workout logs, use upsert() instead:
-        # upsert(kind='log', key='2025-10-29-upper', content='Upper: Full workout details...')
-    """
-    user_id = _get_user_id()
-
-    parsed_time = None
-    if occurred_at:
-        try:
-            parsed_time = datetime.fromisoformat(occurred_at)
-        except Exception:
-            parsed_time = None
-
-    with get_session() as session:
-        if event_id:
-            # Update existing event
-            return crud.update_event(
-                session,
-                user_id,
-                event_id=event_id,
-                content=content,
-                occurred_at=parsed_time,
-            )
-        else:
-            # Create new event
+        # If no key provided (for metrics/notes), use log_event
+        if not key:
             return crud.log_event(
                 session,
                 user_id,
                 kind=kind,
                 content=content,
-                occurred_at=parsed_time,
+                occurred_at=None,
             )
+        else:
+            return crud.upsert_item(
+                session,
+                user_id,
+                kind=kind,
+                key=key,
+                content=content,
+                status=status,
+                old_key=old_key,
+            )
+
 
 
 @mcp.tool
