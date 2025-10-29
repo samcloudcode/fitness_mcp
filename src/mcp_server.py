@@ -49,6 +49,12 @@ from src.memory.db import SessionLocal, engine
 
 mcp = FastMCP("Fitness Memory Server (Simplified)")
 
+# Load fitness coach instructions as a resource
+INSTRUCTIONS_PATH = Path(__file__).parent.parent / "FITNESS_COACH_INSTRUCTIONS_CONSOLIDATED.md"
+INSTRUCTIONS_CONTENT = None
+if INSTRUCTIONS_PATH.exists():
+    INSTRUCTIONS_CONTENT = INSTRUCTIONS_PATH.read_text()
+
 # Warm up the connection pool at startup
 try:
     with engine.connect() as conn:
@@ -371,6 +377,27 @@ def archive(
 
 
 # ====================
+# ====================
+# MCP RESOURCES
+# ====================
+
+@mcp.resource("fitness://coach-instructions")
+async def get_coach_instructions():
+    """
+    Fitness coach instructions and guidelines for LLMs using this MCP server. Always fetch first.
+
+    This resource provides comprehensive guidance on:
+    - The two-phase pattern (propose first, save after approval)
+    - Planning hierarchy (goals, program, week, plan)
+    - Context-aware overview modes
+    - Data fetching rules for safety
+    - Content guidelines and naming conventions
+    """
+    if INSTRUCTIONS_CONTENT:
+        return INSTRUCTIONS_CONTENT
+    else:
+        return "Fitness coach instructions not found. Please ensure FITNESS_COACH_INSTRUCTIONS_CONSOLIDATED.md exists in the project root."
+
 # RUN SERVER
 # ====================
 
