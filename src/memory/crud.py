@@ -466,7 +466,16 @@ def get_overview(
                 key=lambda x: -(x.updated_at or x.created_at or datetime.min).timestamp(),
             )
 
-        overview: dict[str, Any] = {}
+        # Calculate current date and week number
+        now = datetime.now()
+        current_date = now.strftime("%Y-%m-%d")
+        current_week = now.isocalendar()  # Returns (year, week_number, day_of_week)
+        week_string = f"{current_week[0]}-week-{current_week[1]:02d}"
+
+        overview: dict[str, Any] = {
+            "current_date": current_date,
+            "current_week": week_string,
+        }
 
         # Determine log limit based on context
         log_limit = 10  # default (10 logs or ~2 weeks)
@@ -497,28 +506,17 @@ def get_overview(
             if strategy_section:
                 overview["strategies"] = strategy_section
 
-        # Goals (grouped by status) - full content, ordered by priority
+        # Goals (grouped by status) - full content, ordered by key (p1, p2, etc.)
         goals = by_kind.get("goal", [])
         if goals:
-            def _priority_sort_key(item: Entry) -> tuple:
-                # Extract priority from content (High > Medium > Low > none)
-                content_lower = (item.content or "").lower()
-                if "priority: high" in content_lower or "priority:high" in content_lower:
-                    priority_rank = 0
-                elif "priority: medium" in content_lower or "priority:medium" in content_lower:
-                    priority_rank = 1
-                elif "priority: low" in content_lower or "priority:low" in content_lower:
-                    priority_rank = 2
-                else:
-                    priority_rank = 3  # No priority specified
-                # Secondary sort by updated_at (recent first)
-                timestamp = -(item.updated_at or item.created_at or datetime.min).timestamp()
-                return (priority_rank, timestamp)
+            def _key_sort(item: Entry) -> str:
+                # Sort by key to get natural ordering like p1, p2, p3, etc.
+                return item.key or ""
 
             goal_groups = _group_by_status(goals, default_key="active")
             goals_section: dict[str, list[dict[str, Any]]] = {}
             for status, items in goal_groups.items():
-                sorted_items = sorted(items, key=_priority_sort_key)
+                sorted_items = sorted(items, key=_key_sort)
                 cleaned = [_clean_entry(item, for_overview=True) for item in sorted_items]
                 if cleaned:
                     goals_section[status] = cleaned
