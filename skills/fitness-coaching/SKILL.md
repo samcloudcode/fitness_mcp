@@ -1,9 +1,28 @@
 ---
 name: fitness-coaching
-description: Use for creating workouts, saving workout data (logs, plans, goals, programs), managing fitness preferences and user-specific knowledge, and answering fitness questions. Provides MCP database tools and progressive access to programming workflows, coaching philosophy, and domain-specific knowledge.
+description: Use for saving workout data (logs, plans, goals, programs), managing fitness preferences and user-specific knowledge, and answering fitness questions. Load PROGRAM.md/WEEK.md/WORKOUT.md for creating programs/weeks/workouts. Provides MCP database tools and progressive access to programming workflows, coaching philosophy, and domain-specific knowledge.
 ---
 
 # Fitness Coaching
+
+**What This Skill Does:**
+- Manages fitness data (goals, programs, workouts, knowledge) via MCP database
+- Provides 4 tools for saving/retrieving data: `upsert`, `overview`, `get`, `archive`
+- Tracks 4-level hierarchy: Goals → Program → Week → Plan
+
+**This file contains:**
+- Tool usage and data structure reference
+- When to save vs propose (critical rules)
+- Naming conventions and content guidelines
+
+**For creating programs and workouts, load:**
+- **PROGRAM.md** - Creating overall training program strategy
+- **WEEK.md** - Planning weekly training schedule
+- **WORKOUT.md** - Creating individual workouts and plans
+- **COACHING.md** - Philosophy and decision-making frameworks
+- **knowledge/*.md** - Domain-specific expertise (knee health, exercise selection, etc.)
+
+---
 
 ## System Overview (Big Picture)
 
@@ -13,7 +32,7 @@ description: Use for creating workouts, saving workout data (logs, plans, goals,
 3. **Week** - This week's schedule (e.g., "Mon: Upper, Tue: Run, Wed: Lower...")
 4. **Plan** - Today's workout (e.g., "Bench 4x10 @ 185, OHP 3x12...")
 
-**Everything is stored in database** via 4 MCP tools:
+**User specific details are stored in database** via 4 MCP tools:
 - `fitness-mcp:overview` - Scan data (context-aware)
 - `fitness-mcp:get` - Fetch full details
 - `fitness-mcp:upsert` - Create/update ALL data
@@ -23,12 +42,11 @@ description: Use for creating workouts, saving workout data (logs, plans, goals,
 - User-specific goals, workouts, metrics, preferences
 - Personal limitations and injury history
 - Completed workout logs
-- NOT general fitness knowledge (that's in this skill's reference files)
 
 **This skill provides**:
-- Tools to save/retrieve data (this file)
-- Programming workflows (PROGRAMMING.md)
-- Coaching principles (COACHING.md)
+- How to use tools to save/retrieve data (this file)
+- Program/week/workout creation workflows (PROGRAM.md, WEEK.md, WORKOUT.md)
+- Coaching principles and expertise (COACHING.md)
 - Domain expertise (knowledge/*.md files)
 
 ---
@@ -44,11 +62,27 @@ description: Use for creating workouts, saving workout data (logs, plans, goals,
 
 **The pattern:** Client provides = save now. You suggest = propose first, then save.
 
-## 💬 Communication Style
+---
 
-**Saved data = concise.** Keep entries short and focused (see length guidelines by kind). Strip unnecessary words.
+## 📁 Load Files Based on Task
 
-**Client responses = informative.** Provide context, explain rationale, answer questions thoroughly. Be concise, helpful and educational.
+**Creating overall training program:**
+→ Load PROGRAM.md (program strategy, integrating multiple goals, concurrent training)
+
+**Planning weekly schedule:**
+→ Load WEEK.md (weekly planning, balancing training across 7 days, adjusting for constraints)
+
+**Creating individual workout:**
+→ Load WORKOUT.md (7-step workflow, plan templates, data fetching rules)
+
+**Making coaching decisions or explaining "why":**
+→ Load COACHING.md (principles, philosophy, decision frameworks)
+
+**Domain-specific questions:**
+→ Load knowledge/*.md as needed (knee health, exercise selection, periodization, etc.)
+
+**Simple data entry (logging, saving user info):**
+→ Use tools documented in this file (no additional files needed)
 
 ---
 
@@ -76,7 +110,7 @@ Plan training at four levels, from broadest to most specific:
 | **Week** | 7 days | `2025-week-43` | What's the plan for this week? |
 | **Plan** | Single workout | `2025-10-22-strength` | What am I doing today? |
 
-**For detailed examples and templates**: Read PROGRAMMING.md
+**For detailed examples and templates**: Read PROGRAM.md (program), WEEK.md (week), or WORKOUT.md (plan/log)
 
 ---
 
@@ -92,7 +126,7 @@ Quick scan of relevant data based on what you're doing.
 **Contexts:**
 - **`planning`**: Comprehensive view for programming workouts
   - Returns: goals (priority order), program, week, recent plans (5 most recent), all preferences, all knowledge, recent logs (10 most recent)
-  - Use when: Creating workouts, updating programs
+  - Use when: Creating programs/weeks/workouts (load PROGRAM/WEEK/WORKOUT.md), reviewing program context
 - **`upcoming`**: Focus on near-term plans
   - Returns: goals, week, recent plans (5 most recent), recent logs (7 most recent)
   - Use when: Client asks "what's next?"
@@ -105,7 +139,7 @@ Quick scan of relevant data based on what you're doing.
 - **No context (default)**: All active data
 
 ```python
-# Start workout planning session
+# Get comprehensive context (use with PROGRAM/WEEK/WORKOUT.md workflows)
 fitness-mcp:overview(context='planning')
 
 # Check what's coming up
@@ -241,6 +275,7 @@ Every entry should explain rationale, not just describe what/how. It should be c
 | **note** | *(no key - event)* | 10-50 words | "Knee felt tight during warmup, loosened up by set 3. May need extra mobility work this week." |
 
 **Principles:**
+- **Be concise**: Keep entries short and focused (see length guidelines above). Strip unnecessary words
 - **Include "why"**: Every entry should explain rationale, not just describe what/how
 - **Put EVERYTHING in content**: No structured fields needed - dates, priorities, context all in natural text
 - **Keys are kebab-case**: goal (`p1-bench-225`), program (`current-program`), week (`2025-week-43`), plan (`2025-10-22-upper`), knowledge (`knee-health-alignment`), preference (`training-style`)
@@ -357,7 +392,9 @@ fitness-mcp:upsert(
 ```
 User shares info → Save immediately
 User asks question → fitness-mcp:overview(context='knowledge'|'history'|'upcoming') → get details if needed → Answer
-User wants workout → fitness-mcp:overview(context='planning') → Review all data → Propose (don't save) → Approve → Save
+User wants program → Load PROGRAM.md
+User wants weekly plan → Load WEEK.md
+User wants workout → Load WORKOUT.md (7-step workflow)
 Plans need adjustment → Update immediately when agreed
 Workout provided piecemeal → Update same entry via key
 Found a mistake → Update by key (same key = replace)
@@ -392,30 +429,3 @@ Old data no longer relevant → fitness-mcp:archive (don't delete)
 - Programming workflows → PROGRAMMING.md
 - Coaching philosophy → COACHING.md
 - Domain knowledge → knowledge/*.md files
-
----
-
-## Detail Files (Load When Needed)
-
-**PROGRAMMING.md** - Load when designing workouts or creating plans:
-- Complete planning hierarchy (goal, program, week, plan) with detailed examples
-- Content templates for each level
-- 7-step workout design workflow
-- Step-by-step processes
-- Data fetching rules (safety first)
-- Preference templates
-
-**COACHING.md** - Load when making coaching decisions or explaining programming:
-- Goal-driven programming
-- Action over discussion
-- Efficiency and specificity balance
-- Energy management
-- Scientific best practices
-- When to explain "why"
-
-**knowledge/*.md** - Load specific topics as needed:
-- **KNEE-HEALTH.md**: Load when user has knee issues or mentions knee pain
-- **SHOULDER-HEALTH.md**: Load when programming upper body with shoulder concerns
-- **EXERCISE-SELECTION.md**: Load when choosing exercises or making substitutions
-- **PERIODIZATION.md**: Load when planning training phases or progression
-- **CONCURRENT-TRAINING.md**: Load when managing strength + endurance or multiple goals
