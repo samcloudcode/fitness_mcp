@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a simplified fitness tracking MCP server following Claude Code's philosophy: **minimal tool surface (4 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
+This repository combines two complementary components:
+
+1. **MCP Server** - A simplified fitness tracking server following Claude Code's philosophy: **minimal tool surface (4 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
+
+2. **Anthropic Skills Folder** - A collection of Claude Code skills (in `.claude/skills/`) that provide structured fitness coaching instructions. These skills can be exported and reused in other repositories or shared with other users.
 
 ### 🎯 4 Core Tools (Down from 17)
 
@@ -30,6 +34,18 @@ This is a simplified fitness tracking MCP server following Claude Code's philoso
 **Observability**: Integrated Logfire instrumentation for SQLAlchemy operations, configurable via environment variables (`LOGFIRE_SEND_TO_LOGFIRE`, `ENVIRONMENT`).
 
 **Naming Conventions**: Strict key naming and content structure rules ensure data consistency. See [NAMING_CONVENTIONS.md](NAMING_CONVENTIONS.md) for complete reference.
+
+### Skills Structure
+
+The `.claude/skills/` folder contains exportable skill modules that provide fitness coaching capabilities:
+
+- **`fitness-coach-essentials/`** - Core coaching logic and MCP tool usage patterns
+- **`fitness-coach-programming/`** - Workout programming and exercise science knowledge
+- **`fitness-coach-interaction/`** - User interaction patterns and conversational guidelines
+
+**Exporting Skills**: These skills can be copied to other repositories or shared with users who want fitness coaching capabilities in their own Claude Code environments. Each skill is self-contained with its own `skill.md` instruction file.
+
+**Using Skills**: Skills are automatically loaded when working in this repository. They provide context-aware guidance to Claude Code for fitness coaching tasks.
 
 ## Development Commands
 
