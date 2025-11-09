@@ -1,6 +1,6 @@
 ---
 name: fitness-coaching
-description: Use for saving workout data (logs, plans, goals, programs), managing fitness preferences and user-specific knowledge, and answering fitness questions. Load PROGRAM.md/WEEK.md/WORKOUT.md for creating programs/weeks/workouts. Provides MCP database tools and progressive access to programming workflows, coaching philosophy, and domain-specific knowledge.
+description: Use for planning workouts, programs, fitness, fitness goals, saving workout data (logs, plans, goals, programs), managing fitness preferences. Load PROGRAM.md/WEEK.md/WORKOUT.md/COACHING.md for creating programs/weeks/workouts and real-time coaching. Provides MCP database tools and progressive access to programming workflows and domain-specific knowledge.
 ---
 
 # Fitness Coaching
@@ -19,29 +19,30 @@ description: Use for saving workout data (logs, plans, goals, programs), managin
 - **PROGRAM.md** - Creating overall training program strategy
 - **WEEK.md** - Planning weekly training schedule
 - **WORKOUT.md** - Creating individual workouts and plans
-- **COACHING.md** - Philosophy and decision-making frameworks
+- **COACHING.md** - Real-time workout coaching and execution (when client is actively training)
 - **knowledge/*.md** - Domain-specific expertise (knee health, exercise selection, etc.)
 
 ---
 
 ## System Overview (Big Picture)
 
-**Core Approach**: Track fitness data in 4 hierarchical levels:
+**Core Approach**: Track fitness data in 4 hierarchical planning levels:
 1. **Goals** - Long-term targets (e.g., "Bench 225 by June")
 2. **Program** - Overall strategy (e.g., "Strength 4x/week + running 3x/week")
 3. **Week** - This week's schedule (e.g., "Mon: Upper, Tue: Run, Wed: Lower...")
 4. **Plan** - Today's workout (e.g., "Bench 4x10 @ 185, OHP 3x12...")
 
-**User specific details are stored in database** via 4 MCP tools:
+**Plus supporting data**:
+- **Logs** - Completed workout records (one per session with date keys)
+- **Metrics** - Point-in-time measurements (weight, sleep, readiness)
+- **Knowledge** - User-specific observations (injury history, form cues, what works)
+- **Preferences** - Equipment, timing, style, recovery needs
+
+**User specific details are stored/retrieved from database** via 4 MCP tools:
 - `fitness-mcp:overview` - Scan data (context-aware)
 - `fitness-mcp:get` - Fetch full details
 - `fitness-mcp:upsert` - Create/update ALL data
 - `fitness-mcp:archive` - Hide old data
-
-**Database stores**:
-- User-specific goals, workouts, metrics, preferences
-- Personal limitations and injury history
-- Completed workout logs
 
 **This skill provides**:
 - How to use tools to save/retrieve data (this file)
@@ -55,12 +56,68 @@ description: Use for saving workout data (logs, plans, goals, programs), managin
 
 **ALWAYS act on these principles:**
 
-1. **Thoroughness Before Suggestions**: NEVER propose a workout without reviewing ALL saved context (knowledge, recent workouts, current program, preferences)
-2. **Save User Info Immediately**: When client shares completed workouts, goals, limitations, or decisions → save right away
+1. **Extract & Save New Information IMMEDIATELY**: During ANY conversation, if user mentions new goals, preferences, completed workouts, injuries, equipment changes, activity preferences (yoga, climbing, MTB), or any constraints → save to database right away using `fitness-mcp:upsert`
+2. **Load Correct Instructions First**: Before creating programs/weeks/workouts → load appropriate .md file (PROGRAM.md/WEEK.md/WORKOUT.md) for detailed workflows and templates
 3. **Propose Before Saving Your Ideas**: When YOU suggest a workout/plan → propose first, save only after client agrees
 4. **Keep Data Current**: Review program freshness at session start - update if stale (3+ months) or strategy changed. Proactively ask to fill gaps, update outdated info, maintain accurate records
 
 **The pattern:** Client provides = save now. You suggest = propose first, then save.
+
+### Extract & Save Pattern (Critical Workflow)
+
+**During conversations, actively listen for and save:**
+
+**New goals mentioned:**
+```
+User: "I want to bench 225 by June"
+→ Immediately: fitness-mcp:upsert(kind='goal', key='p1-bench-225', content='Bench 225x5 by June (currently 185x5). Priority: High.')
+```
+
+**Activity preferences:**
+```
+User: "I do yoga every Sunday morning at 9am with my partner"
+→ Immediately: fitness-mcp:upsert(kind='preference', key='activity-yoga-sunday', content='Yoga Sundays 9am (90min) with partner - non-negotiable, social commitment. Aids recovery.')
+```
+
+**Equipment changes:**
+```
+User: "I just got a home gym with a rack and barbell"
+→ Immediately: fitness-mcp:upsert(kind='preference', key='equipment-home-gym', content='Home gym: Full rack, barbell, plates to 400lbs, bench. Available daily.')
+```
+
+**Injuries/limitations:**
+```
+User: "My right shoulder clicks when I press overhead"
+→ Immediately: fitness-mcp:upsert(kind='knowledge', key='shoulder-right-clicking', content='Right shoulder clicks during overhead press. Started Nov 2024. Avoid: Behind-neck press, full ROM overhead. Use: Landmine press, incline press.')
+```
+
+**Completed workouts:**
+```
+User: "I just did squats 5x5 at 265, felt great"
+→ Immediately: fitness-mcp:upsert(kind='log', key='2025-01-15-lower', content='Squats 5x5 @ 265lbs - felt great, RPE 7')
+```
+
+**Preferences/constraints:**
+```
+User: "I prefer morning workouts around 6am, and I can do 60 minutes max"
+→ Immediately: fitness-mcp:upsert(kind='preference', key='timing-morning', content='Prefer 6am workouts, 60min max sessions. Morning energy best, evening too tired.')
+```
+
+**Training patterns that work:**
+```
+User: "I've been doing 4 days a week and it's working really well"
+→ Immediately: fitness-mcp:upsert(kind='knowledge', key='frequency-4x-week-sustainable', content='4x/week training sustainable (tested Jan 2025). More = overtraining, 3x = not enough volume for goals.')
+```
+
+**Multiple activities:**
+```
+User: "I climb Tuesday/Thursday evenings with friends and do MTB on Saturdays"
+→ Immediately:
+  fitness-mcp:upsert(kind='preference', key='activity-climbing', content='Climbing Tue/Thu 6pm (90min) with friends - social, non-negotiable.')
+  fitness-mcp:upsert(kind='preference', key='activity-mtb-saturday', content='MTB Saturdays (60-90min) trail rides - fun, variable intensity.')
+```
+
+**Then continue conversation** - answer questions, create programs, etc. The key is **capture data FIRST**, use later.
 
 ---
 
@@ -73,10 +130,10 @@ description: Use for saving workout data (logs, plans, goals, programs), managin
 → Load WEEK.md (weekly planning, balancing training across 7 days, adjusting for constraints)
 
 **Creating individual workout:**
-→ Load WORKOUT.md (7-step workflow, plan templates, data fetching rules)
+→ Load WORKOUT.md (workout creation workflow, plan templates, data fetching rules)
 
-**Making coaching decisions or explaining "why":**
-→ Load COACHING.md (principles, philosophy, decision frameworks)
+**Client is actively doing a workout:**
+→ Load COACHING.md (real-time coaching, form cues, RPE calibration, troubleshooting, incremental logging)
 
 **Domain-specific questions:**
 → Load knowledge/*.md as needed (knee health, exercise selection, periodization, etc.)
@@ -138,7 +195,6 @@ Quick scan of relevant data based on what you're doing.
   - Use when: Client asks about progress, patterns, or wants to review past training
 - **No context (default)**: All active data
 
-```python
 # Get comprehensive context (use with PROGRAM/WEEK/WORKOUT.md workflows)
 fitness-mcp:overview(context='planning')
 
@@ -153,7 +209,6 @@ fitness-mcp:overview(context='history')
 
 # See everything (default)
 fitness-mcp:overview()
-```
 
 ### 2. `fitness-mcp:get` - Retrieve Full Details
 Fetch complete content for specific items or filtered lists.
@@ -169,7 +224,6 @@ Fetch complete content for specific items or filtered lists.
 - `start`/`end`: Date filters for events
 - `limit`: Maximum number of results (default 100)
 
-```python
 # Get full content for specific items seen in overview
 fitness-mcp:get(items=[
     {'kind': 'knowledge', 'key': 'knee-issue'},
@@ -181,7 +235,6 @@ fitness-mcp:get(kind='log', start='2025-01-01', limit=10)
 
 # Get all active goals
 fitness-mcp:get(kind='goal', status='active')
-```
 
 ### 3. `fitness-mcp:upsert` - Create/Update All Entries
 Universal tool for all data entry. Handles both keyed items and keyless events.
@@ -201,7 +254,6 @@ Universal tool for all data entry. Handles both keyed items and keyless events.
 - `status`: Optional ('active' or 'archived')
 - `old_key`: Optional - rename an entry from old_key to key
 
-```python
 # Goal with priority in key
 fitness-mcp:upsert(kind='goal', key='p1-bench-225', content='Bench 225x5 by June.')
 
@@ -216,7 +268,6 @@ fitness-mcp:upsert(kind='note', key='', content='Knee felt tight during warmup')
 
 # Knowledge
 fitness-mcp:upsert(kind='knowledge', key='knee-health-alignment', content='Keep knees tracking over toes...')
-```
 
 **Important - Metrics:** Store **one metric per entry** for better trend tracking.
 
@@ -230,10 +281,8 @@ Hide outdated items while keeping history.
 - `key`: Specific item key (optional for bulk)
 - `event_id`: Event ID to archive
 
-```python
 fitness-mcp:archive(kind='goal', key='old-goal')     # Archive specific item
 fitness-mcp:archive(kind='preference')                # Archive all preferences
-```
 
 ---
 
@@ -284,30 +333,25 @@ Every entry should explain rationale, not just describe what/how. It should be c
 
 ---
 
-## Knowledge Storage: Specific, Not Generic
+## Knowledge Storage: User-Specific Only
 
-**Store the WHAT/HOW/WHY in concise, actionable form. Not textbook knowledge.**
+**Store USER-SPECIFIC observations, not general fitness knowledge.**
 
-### ❌ DON'T Store Vague or Common Knowledge
+General exercise science, protocols, and principles are already in the skill's knowledge files. Database knowledge is for the user's unique situation.
+
+### ❌ DON'T Store General Fitness Knowledge
 ```
-"Progressive overload is important"  # Too generic
-"Galpin recommends Zone 2 cardio"  # Missing specifics
-"Squats are a compound movement"  # You know this
-"Protein helps recovery"  # No actionable detail
+"Progressive overload is important"  # General principle - you already know this
+"Galpin 3x3: 3min all-out, 3min rest"  # General protocol - see knowledge/*.md
+"Squats are a compound movement"  # General exercise info
+"Protein helps recovery"  # General nutrition
 ```
 
-### ✅ DO Store Specific, Actionable Insights
-```python
-fitness-mcp:upsert(
-    kind='knowledge',
-    key='vo2-galpin-3x3-protocol',
-    content='Galpin 3x3: 3min all-out, 3min rest, 3 rounds. Once/week max. Boosts VO2 max 8-10% in 6wks.'
-)
-
+### ✅ DO Store User-Specific Observations
 fitness-mcp:upsert(
     kind='knowledge',
     key='squat-depth-cue-spread-floor',
-    content='Depth issue solved: "Spread floor" cue > "knees out". Activates glute med without knee cave. +20lbs instantly.'
+    content='MY depth issue solved: "Spread floor" cue > "knees out". Activates glute med without knee cave. +20lbs instantly when I switched cues.'
 )
 
 fitness-mcp:upsert(
@@ -315,16 +359,21 @@ fitness-mcp:upsert(
     key='shoulder-impingement-right',
     content='Right shoulder clicks at 90°. Cause: Side sleeping. Fix: Band pull-aparts 2x20 before pressing. Avoid: Dips, overhead press.'
 )
-```
 
-**Naming:** Use descriptive, specific keys (`vo2-galpin-3x3-protocol` not just `galpin-protocol`).
+fitness-mcp:upsert(
+    kind='knowledge',
+    key='knee-alignment-narrow-stance',
+    content='Knee pain eliminated by widening squat stance 2 inches. Started Sept 2024. Narrow stance (shoulder-width) caused cave, wider (outside shoulders) keeps tracking clean.'
+)
+
+**Naming:** Use descriptive, specific keys (`shoulder-impingement-right` not just `shoulder-issue`).
 
 ### What to Capture (Under 50 Words Each)
-- **Specific protocols**: "3x3min intervals at 95% HR, once weekly"
-- **Exact cues that work**: "Push the floor away" not just "leg drive"
-- **Numbers and thresholds**: "152bpm lactate threshold" not "Zone 2"
-- **Cause and effect**: "Knee pain from narrow stance → widened 2 inches → resolved"
-- **Expert specifics**: "Galpin: 6-second eccentrics for Type I dominant athletes"
+- **User's injury history**: "Right shoulder clicks at 90°, avoid dips"
+- **Cues that work FOR THEM**: "Push the floor away cue works better than leg drive"
+- **User's numbers**: "152bpm lactate threshold tested March 2025"
+- **Cause and effect FOR THEM**: "Knee pain from narrow stance → widened 2 inches → resolved"
+- **User-specific responses**: "Needs 2 rest days after deadlifts or back tightens up"
 
 ---
 
@@ -350,7 +399,6 @@ User: "Yesterday I did deadlifts"
 ## Tool Usage Examples
 
 ### Log Complete Workouts (Everything in Content)
-```python
 # Use upsert with date-based key for workout logs (one log per workout)
 fitness-mcp:upsert(
     kind='log',
@@ -361,27 +409,22 @@ fitness-mcp:upsert(
 # Use upsert with empty key for metrics and notes
 fitness-mcp:upsert(kind='metric', key='', content='Weight: 71kg')
 fitness-mcp:upsert(kind='note', key='', content='Knee felt tight during warmup')
-```
 
 ### Fix Mistakes After the Fact
-```python
 # For workout logs - just upsert again with same key
 fitness-mcp:upsert(kind='log', key='2025-10-29-lower', content='Corrected: Squats 5x5 @ 255lbs RPE 7, RDL...')
 
 # For metrics/notes - cannot update (immutable events)
 # Must create new entry with corrected value
 fitness-mcp:upsert(kind='metric', key='', content='Corrected: Weight 72kg')
-```
 
 ### Handle Contradicting Information
 When new advice contradicts old, update (don't delete):
-```python
 fitness-mcp:upsert(
     kind='knowledge',
     key='squat-depth-guidance',
     content='UPDATE: Coach says parallel is fine for me. Previous ATG recommendation causing knee stress. Changed Oct 2024.'
 )
-```
 
 **Naming:** Keep keys descriptive (`squat-depth-guidance` includes context about what it is).
 
@@ -390,23 +433,31 @@ fitness-mcp:upsert(
 ## Quick Reference
 
 ```
-User shares info → Save immediately
-User asks question → fitness-mcp:overview(context='knowledge'|'history'|'upcoming') → get details if needed → Answer
-User wants program → Load PROGRAM.md
-User wants weekly plan → Load WEEK.md
-User wants workout → Load WORKOUT.md (7-step workflow)
+ANY user mention of new info → Extract & save immediately (goals, preferences, activities, injuries, equipment)
+User shares completed workout → Save as log immediately
+User asks question → fitness-mcp:overview(context='knowledge'|'history'|'upcoming') → Load relevant knowledge/*.md if needed → get details if needed → Answer
+User wants program (new/edit) → fitness-mcp:overview(context='planning') → Load PROGRAM.md → Extract data from overview → Design program → Propose → Save after approval
+User wants weekly plan (new/edit) → fitness-mcp:overview(context='planning') → Load WEEK.md → Design → Propose → Save after approval
+User wants workout (new/edit) → fitness-mcp:overview(context='planning') → Load WORKOUT.md → Design → Propose → Save after approval
 Plans need adjustment → Update immediately when agreed
-Workout provided piecemeal → Update same entry via key
+Workout provided piecemeal → Update same log entry via date key
 Found a mistake → Update by key (same key = replace)
 Old data no longer relevant → fitness-mcp:archive (don't delete)
 ```
 
+**Critical Pattern:**
+1. **Listen & Extract**: During conversation, actively listen for new goals, preferences, activities (yoga, climbing), equipment, injuries, constraints
+2. **Save Immediately**: Use `fitness-mcp:upsert` to capture data right away
+3. **Use Later**: When creating programs/weeks/workouts, `overview(context='planning')` will return all this saved data
+
 **Remember:**
-- Same key = update
-- Archive don't delete
+- Extract & save ANY new info user mentions (don't wait, don't ask for confirmation)
+- Same key = update (e.g., same log date key appends to workout)
+- Keep everything relevant and up to date
+- Archive old information (don't delete)
 - Everything in content as natural text
-- Propose first, save after approval
-- Fetch ALL knowledge for safety
+- Your ideas = propose first, save after approval
+- User's info = save immediately
 - Follow naming conventions (kebab-case keys)
 
 ---
@@ -426,6 +477,8 @@ Old data no longer relevant → fitness-mcp:archive (don't delete)
 
 **In This Skill** (general expertise):
 - Tool usage → This file (SKILL.md)
-- Programming workflows → PROGRAMMING.md
+- Program creation/editing → PROGRAM.md
+- Week planning/editing → WEEK.md
+- Workout creation/editing → WORKOUT.md
 - Coaching philosophy → COACHING.md
 - Domain knowledge → knowledge/*.md files

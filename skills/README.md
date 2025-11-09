@@ -6,17 +6,11 @@ Evidence-based fitness coaching with tools for tracking workouts, goals, program
 
 ```
 fitness-coaching/
-├── SKILL.md (421 lines)              # Entry point - tools, storage, big picture
-├── PROGRAMMING.md (359 lines)        # Detailed programming workflows
-├── COACHING.md (71 lines)            # Coaching philosophy
+├── SKILL.md                          # Entry point - tools, storage, big picture
+├── PROGRAMMING.md                    # Detailed programming workflows
+├── COACHING.md                       # Coaching philosophy
 └── knowledge/                        # Domain-specific reference knowledge
-    ├── CONCURRENT-TRAINING.md (234 lines)
-    ├── EXERCISE-SELECTION.md (178 lines)
-    ├── KNEE-HEALTH.md (101 lines)
-    ├── PERIODIZATION.md (234 lines)
-    └── SHOULDER-HEALTH.md (123 lines)
-
-Total: 1,721 lines
+    └── KNEE-HEALTH.md               # Mechanisms & principles for knee health programming
 ```
 
 ## Progressive Disclosure Pattern

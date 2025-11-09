@@ -80,11 +80,7 @@ fitness-mcp:upsert(
 
 Load these when relevant to user's context (Step 2):
 
-- **CONCURRENT-TRAINING.md**: Strength + cardio/endurance goals, interference management, 80/20 polarized training, 3-4 hard days max
-- **KNEE-HEALTH.md**: Knee injury history, deep squat limitations, daily bulletproofing protocol, ROM progression
-- **SHOULDER-HEALTH.md**: Rotator cuff issues, overhead press limitations, push/pull balance prehab
-- **PERIODIZATION.md**: Training phase planning (hypertrophy → strength → peak), 12-week block structure
-- **EXERCISE-SELECTION.md**: Exercise substitutions, equipment constraints, injury accommodations, movement patterns
+- **KNEE-HEALTH.md**: Mechanisms and principles for knee health programming (VMO stabilization, eccentric loading, tissue adaptation, modification decision trees)
 
 ---
 
@@ -304,7 +300,7 @@ SEQUENCING & INTERFERENCE:
 - No heavy lower before hard cardio (both use legs minimally at maintenance intensity)
 
 RATIONALE:
-- VO2 p1 needs 2-3 hard interval sessions + easy aerobic base (80/20 principle from CONCURRENT-TRAINING.md)
+- VO2 p1 needs 2-3 hard interval sessions + easy aerobic base (80/20 principle)
 - Strength p2 gets 2x/week maintenance (sufficient to preserve muscle per research, allows VO2 focus)
 - Yoga/MTB are fixed social activities → schedule training around them (sustainable > optimal)
 - Total 4 hard days manageable with high recovery capacity (from knowledge)

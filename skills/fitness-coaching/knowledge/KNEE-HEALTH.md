@@ -1,200 +1,158 @@
-# Knee Health Programming
+# Knee Health: Programming Essentials
 
-Evidence-based principles and daily protocol for bulletproof knees.
-
----
-
-## Core Philosophy: Train Through Full ROM
-
-**The Myth**: "Never let knees go over toes"
-**The Reality**: Knees-over-toes movement is safe and strengthens the knee through full range.
-
-- Elite weightlifters squat ATG with knees forward → healthiest knees
-- "The knee that can go farthest and strongest is the most protected" (Poliquin)
-- Restricting knee travel shifts stress to hips/back (worse outcomes)
-- **Key**: Progressive loading through full range builds tissue tolerance
+Actionable principles for workout design and exercise selection when programming for knee health.
 
 ---
 
-## Muscle Groups That Protect Knees
+## Core Principle: Full ROM Builds Resilience
 
-### 1. Quadriceps (Front Thigh)
-**Why**: Stabilize patella, control knee extension, act as shock absorbers
-**Evidence**: Strong quads = fewer knee injuries (patellofemoral pain, general instability)
-**Train**: Deep squats, split squats, step-ups, wall sits through full ROM
+**Key Insight**: Knees-over-toes and deep flexion BUILD knee strength when loaded progressively.
 
-### 2. Hamstrings & Glutes (Posterior Chain)
-**Why**:
-- Hamstrings stabilize tibia, protect ACL
-- Glute medius prevents knee valgus (inward collapse)
-- Share load with quads
-
-**Evidence**: Weak hamstrings = higher ACL injury risk; strong glutes = proper knee tracking
-**Train**: Nordic curls, glute bridges, hip thrusts, lateral band walks
-
-### 3. Calves & Tibialis (Lower Leg)
-**Why**:
-- Soleus (bent-knee) supports knee during flexion activities
-- Tibialis anterior controls deceleration, reduces knee stress
-- Balanced lower leg = better shock absorption
-
-**Train**: Bent-knee calf raises (soleus), tibialis raises (toe lifts)
-
-### 4. Hip Mobility (External Rotation)
-**Why**: Knee is a hinge joint with minimal rotation capacity
-**Critical**: Stiff hips in lotus/yoga → knee compensates → meniscus injury
-**Strategy**: Earn hip prerequisites first (90/90 stretches, pigeon pose) before deep yoga
+**Programming Implications**:
+- Don't restrict knee travel—it shifts stress to hips/spine and weakens the knee
+- Progressive loading through full ROM builds structural tolerance
+- Start where athlete is, gradually expand range under control
+- Full ROM squat variations > partial ROM for long-term knee health
 
 ---
 
-## 10-Minute Daily Bulletproofing Protocol
+## Essential Muscle Groups for Knee Protection
 
-Do 3-5x/week minimum. Can split into 5min sessions if needed.
+### Quadriceps: Eccentric Strength Matters Most
 
-### 1. Backward Walk/Sled Pull (2-3 min)
-**What**: Walk backward 20-30 steps × 2-3 sets OR retro walking
-**Why**: Activates quads through full ROM, minimal joint stress, wakes up VMO
-**How**: Knees bent over toes, controlled steps. Use light sled or bodyweight on treadmill/ground
+**Programming Priority**:
+- Full ROM quad exercises with eccentric emphasis (deep squats, split squats, step-ups, slow step-downs)
+- Terminal knee extensions for VMO activation
+- **Why**: Weak eccentric quad strength = bone absorbs impact instead of muscle
 
-### 2. Tibialis Raises (3×15-20)
-**What**: Toe lifts against wall, feet 1-2 ft forward
-**Why**: Strengthens shin muscle for deceleration, reduces knee stress
-**How**: Keep knees straight, lift toes toward shins. Farther from wall = harder
-
-### 3. Deep Squat or Split Squat (2×8-12 each)
-**What**: Choose one:
-- Heels-elevated goblet squat (ATG depth)
-- ATG split squat (hamstring covers calf)
-
-**Why**: Full-range strength in deep flexion → resilient knees
-**How**: Slow descent, knees track over toes, heel flat (use wedge if needed). Form > load
-
-### 4. Nordic Curls or Hamstring Bridge (2×5-8)
-**What**:
-- Nordic: Kneel, lower forward eccentrically, catch with hands
-- Alt: Single-leg bridge (heel on bench)
-
-**Why**: Eccentric hamstring strength protects ACL, proven injury prevention
-**How**: Control the negative on Nordics. Use band assist if needed. Quality > reps
-
-### 5. Lateral Band Walks (2×10-15 steps)
-**What**: Mini-squat position, band around legs, step sideways
-**Why**: Strengthens glute med/min → prevents knee valgus
-**How**: Toes forward, maintain tension, feel outer hip burn
-
-### 6. Bent-Knee Calf Raises (2×15)
-**What**: Calf raises with knees bent 30-40°
-**Why**: Targets soleus for knee stability, shock absorption
-**How**: Sit or stand with bent knees. Can add weight. High reps to fatigue
-
-### 7. Single-Leg Control (Optional, 1-2 sets)
-**What**: Touchdown squat on step OR pistol progression
-**Why**: Exposes imbalances, builds unilateral stability
-**How**: Stand on 4-6" step, squat on one leg, tap other heel to ground. 5-8 reps/leg
-
-### 8. Hip Mobility Cool-Down (1-2 min)
-**What**: Figure-4 stretch, 90/90 hip stretch, gentle half-lotus
-**Why**: Maintain/improve hip external rotation for lotus safety
-**How**: Rotation from hip NOT knee. Use active mobility (contract/release) for end-range strength
+**Common Pattern**: Strong concentric (cycling, leg press) but weak eccentric → knee pain. Solution: Add eccentric-focused work.
 
 ---
 
-## Programming Principles
+### Hamstrings & Glutes: ACL Protection
 
-### Strengthen Supporting Structures
-- **Glutes** (especially glute medius) prevent knee valgus collapse
-- **VMO** (vastus medialis obliquus) helps patellar tracking
-- **Hamstrings** provide knee stability and balance quad strength
-- **Hip mobility** allows proper knee tracking
+**Programming Priority**:
+- Eccentric hamstring work (Nordic curls, RDLs, single-leg RDLs)
+- Lateral hip work for glute medius (band walks, side planks, Copenhagen planks)
+- **Why**: Hamstrings protect ACL during deceleration; glute med prevents knee valgus
 
-### Control Depth and Range
-- Start with partial range if full depth causes pain
-- Box squats control depth precisely
-- Gradually increase range as tolerance improves
-- Pain-free range is the goal, not arbitrary depth standards
-
-### Monitor Stance and Alignment
-- Wider stance often reduces knee stress
-- Toes-out angle (10-30°) can help knee tracking
-- Knees should track over toes, not cave inward
-- Film movements to check alignment
-
-### Manage Volume and Intensity
-- High volume jumping/plyometrics stresses knees
-- Eccentric loading (lowering phase) can rehabilitate tendons
-- Heavy bilateral squatting may need to be reduced
-- Unilateral work distributes load differently
+**Key Training Effect**: Nordic curls reduce ACL/hamstring injuries 50%+ when progressed properly (see Nordic section below).
 
 ---
 
-## Exercise Selection
+### Tibialis Anterior: The Forgotten Protector
 
-### Generally Safe Options
-- **Box squats** - Controlled depth, reduces uncertainty
-- **Romanian deadlifts** - Posterior chain without deep knee flexion
-- **Step-ups** - Unilateral strength, controlled range
-- **Terminal knee extensions** - VMO activation with band
-- **Leg curls** - Hamstring strength without compressive load
-- **Sled pushes** - Knee-friendly conditioning
-- **Glute bridges/hip thrusts** - Glute strength without knee stress
-- **Backward walks/sled** - Quad strength with minimal stress
+**Programming Priority**:
+- Tibialis raises (toe raises against wall) 3×15 daily
+- Bent-knee calf raises for soleus
+- **Why**: Controls foot deceleration → reduces shock transmission to knee
 
-### Modify or Avoid (Depending on Issue)
-- **Deep squats** - If painful, use boxes or reduce depth
-- **Leg press** - Fixed plane can stress knees; machine angle matters
-- **Leg extensions** - High patellar stress; use sparingly
-- **Running on incline** - Increases patellar compression
-- **High-volume jumping** - Repetitive impact on tendons
-- **Lotus pose** - Only if sufficient hip mobility (avoid knee rotation)
-
-### Exercise Substitutions
-| If This Hurts | Try This Instead |
-|---------------|------------------|
-| Back squat | Goblet squat, box squat, trap bar deadlift |
-| Leg press | Bulgarian split squat, step-ups |
-| Running | Cycling, swimming, rowing, sled pushing |
-| Jumping | Strength work, low-impact conditioning |
+**Common Pattern**: Patellar tendinopathy resistant to quad work → add tibialis raises → pain drops significantly within 2 weeks.
 
 ---
 
-## Coaching Cues
+## Hip Mobility Prerequisites
 
-### Effective Cues
-- **"Spread the floor"** - Activates glute medius, prevents valgus
-- **"Knees track over toes"** - Prevents inward collapse (and allows full ROM)
-- **"Push through heels"** - Emphasizes posterior chain
-- **"Screw feet into ground"** - External rotation, glute activation
-- **"Sit back"** - Hip hinge emphasis, less knee translation
+**Critical Rule**: Earn hip mobility BEFORE loading deep flexion + rotation.
 
-### Technique Checkpoints
-- Film from front and side to assess alignment
-- Check for knee valgus (inward collapse) at bottom of squat
-- Ensure even weight distribution between feet
-- Monitor pain during and 24-48 hours after training
-- Progress slowly - increase range before increasing load
+**Programming Checkpoint**:
+- Test 90/90 sit with upright torso
+- Can't do it comfortably? → Work hip mobility before loading deep squats or rotational movements
+- **Why**: Tight hips force knee to compensate with rotation it can't handle → meniscus stress
+
+**Solution**: 90/90 stretches, pigeon pose 2 min/side daily for 4+ weeks before advancing loaded deep flexion.
 
 ---
 
-## Final Coaching Notes
+## Knee Rehab Programming Strategy
 
-**Consistency > Intensity**: 10 min daily beats 1 hr weekly
-**Pain Signals**: Muscle effort good, joint pain bad. Back off if sharp pain
-**Progressive Overload**: Add small increments every 1-2 weeks (depth, reps, or load)
-**Full-Body Context**: Keep regular squats/deads/running if pain-free—this protocol supplements
-**Flexibility**: Include light stretching for quads, hams, calves, ankles on rest days
+**Core Principle**: Frequency + ROM > Intensity
 
-**Expected Outcomes**: Improved stability, comfort in deep positions, confidence for single-leg work, reduced injury risk
+**Optimal Rehab Variables**:
+- **Frequency**: 4-5×/week (frequent low-stress stimulus)
+- **Volume**: 8-12 sets/week per muscle group
+- **Intensity**: RPE 6-7 (tissue conditioning over strength expression)
+- **Progression**: ROM first, then load
+
+**Why**: Tendons adapt 3-4× slower than muscle. Frequent moderate stress > infrequent heavy stress for joint health.
+
+**Example**: 3×8 split squats 5×/week > 5×5 back squats 2×/week (same weekly volume, better distribution).
+
+**ROM Progression Template**:
+Box squat parallel @ 225lb → lower box 1" every 2-3 weeks @ 185lb → reach below parallel → return to 225lb = stronger + more resilient
 
 ---
 
-## When to Load This File
+## Exercise Selection for Knee Pain
 
-Load KNEE-HEALTH.md when:
-- User mentions knee pain or has knee-related goals
-- Programming lower body work for someone with knee history
-- User asks about exercise modifications for knees
-- Designing around a knee limitation mentioned in knowledge entries
-- User reports new knee discomfort
-- User wants to return to lotus pose or deep yoga positions
+**If Bilateral Squat Hurts → Diagnose & Modify**
 
-**Important**: This file provides general principles. Always check user's specific `knowledge` entries for their individual responses and history.
+**Pain Location**:
+- **Bottom of squat**: Deep flexion issue → Box squat (control depth) or heels-elevated goblet squat
+- **Throughout movement**: Compression issue → Unilateral work (split squat, step-up)
+
+**Progression Path Example**:
+Back squat hurts → Box squat to parallel (pain-free) → build to 4×8 RPE 7 → lower box 1" → repeat → full depth achieved
+
+**Why Unilateral Works**:
+- Half the axial load per rep (100lb split squat = 200lb back squat total load)
+- Easier to maintain mechanics
+- Reveals/fixes asymmetries
+- **Rule**: Master unilateral positions before earning bilateral loading
+
+---
+
+## Nordic Curl Progression (Non-Negotiable)
+
+**Why Nordics Are Unique**: Pure eccentric hamstring work in stretched position = matches injury mechanism.
+
+**Critical Progression Rules**:
+1. **Band regression levels**: -3 (heavy assist) → -2 → -1 → BW → +weight
+2. **Stay at each level 3-4 weeks MINIMUM** (tendon adaptation lags muscle by 3-4 weeks)
+3. **Target**: 3×8 with 5-sec eccentric before advancing
+4. **Why 5-sec eccentric**: Time under tension for tendon adaptation, not just muscle
+
+**Common Mistake**: Advancing too fast because it "feels easy" → muscle handles it, tendon can't → strain.
+
+**Evidence**: 50-70% injury reduction when progressed properly. Zero benefit when rushed.
+
+---
+
+## Effective Cueing for Knee Alignment
+
+**Principle**: External cues > Internal cues (environment focus > body part focus)
+
+**Best Cues for Common Issues**:
+- **Knee valgus (cave)**: "Spread the floor" >> "Activate glute medius"
+- **Poor hip engagement**: "Screw feet into ground" >> "Externally rotate hips"
+- **Weak drive**: "Push floor away" >> "Extend knees and hips"
+
+**Why**: Environmental cues engage motor patterns naturally. Anatomical cues create overthinking.
+
+---
+
+## Volume Guidelines for Knee Health
+
+**Weekly Set Benchmarks** (per muscle group):
+- **Maintenance**: Quads 8-10, Hamstrings 6-8
+- **Growth**: Quads 12-16, hamstrings 10-14
+- **Upper limit**: Quads 20+, Hamstrings 18+
+
+**For Knee Issues**:
+- Use maintenance volume (8-10 sets quads, 6-8 hamstrings)
+- Increase frequency: 12 sets as 4×3 sessions > 2×6 sessions
+- Lower intensity: RPE 6-7 for tissue conditioning
+
+**Why**: Frequent moderate stress > infrequent high stress for joint adaptation.
+
+---
+
+## When to Use This Knowledge
+
+**Load when**:
+- Programming lower body work with knee pain/history
+- Designing exercise progressions or modifications
+- User asks about knee-related exercise selection
+- Building rehab protocols
+
+**Remember**: This provides general principles. Always check user's MCP `knowledge` entries for their specific pain patterns, responses, and what has/hasn't worked.

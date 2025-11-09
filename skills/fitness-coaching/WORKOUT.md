@@ -3,30 +3,25 @@
 **Load this file when:** Client asks for a workout or you need to create a plan for a specific training session.
 
 **This file contains:**
-- 7-step workout design workflow
-- Plan creation and templates
-- Data fetching requirements
-- Logging completed workouts
+- Workout design workflow
+- How to extract program strategy into today's session
+- Workout types beyond resistance training
+- Knowledge file integration
+- Plan templates and examples
 
 ---
 
-## 7-Step Workout Design Workflow
+## Workout Design Workflow
 
-When client asks for a workout, follow this complete process:
+When client asks for a workout:
 
-1. **Fetch all relevant info**: `fitness-mcp:overview(context='planning')` - get goals (priority order), program, week, recent plans (5 most recent), all knowledge, all preferences, recent logs (10 most recent)
+**Fetch context first**: `fitness-mcp:overview(context='planning')` - gets goals, program, week, knowledge, recent logs (2 weeks). Check program/week are current (load PROGRAM.md or WEEK.md if stale or needing updates).
 
-2. **Ensure current-program is up to date**: Review program freshness (stale if 3+ months old). If strategy doesn't match current goals or recent feedback, **load PROGRAM.md** to update → propose → get approval → save
+**Extract program → today**: Use program's comprehensive frameworks to design today's session. See "Creating Today's Plan" below. Load knowledge files if program mentions constraints (knee, shoulder, concurrent training).
 
-3. **Check week plan**: Ensure week is current and relevant. If outdated or strategy changed, **load WEEK.md** to update → propose → get approval → save
+**Propose → approve → save**: Present workout with complete rationale (goal connection, phase context, progression from last session). Refine based on feedback. **Only save after approval** → `fitness-mcp:upsert(kind='plan', key='YYYY-MM-DD-{type}', ...)`.
 
-4. **Think deeply to create optimal workout**: Consider ALL context - knowledge (injuries/limitations), history (recent training), current level (logged performance), preferences (equipment/style). Assume 1hr duration unless client specifies otherwise.
-
-5. **Propose and refine**: Present workout with rationale. Refine based on client feedback until they approve.
-
-6. **Save, then guide**: **Only after approval** → `fitness-mcp:upsert(kind='plan', key='YYYY-MM-DD-{type}', ...)`. Then help guide execution (answer questions, provide cues, adjust on the fly).
-
-7. **Log workout sessions**: After completion, use `fitness-mcp:upsert(kind='log', key='YYYY-MM-DD-{type}', content='...')` - maintains one log per workout that can be updated incrementally
+**After completion**: Log what actually happened → `fitness-mcp:upsert(kind='log', key='YYYY-MM-DD-{type}', content='...')`. Same key updates existing log if user provides info incrementally during session.
 
 ---
 
@@ -49,104 +44,137 @@ When client asks for a workout, follow this complete process:
 
 ---
 
-## Plan - Today's Specific Workout
+## Creating Today's Plan from Program Strategy
 
-Planned workout for a specific date and training type:
+**Core principle**: Program contains comprehensive strategy (600-1500 chars). Extract relevant parts into today's executable session (400-800 chars).
 
-```python
-fitness-mcp:upsert(
-    kind='plan',
-    key='2025-10-22-strength',
-    content='6am Upper: Bench 4x10 @ 185 RPE 8 (volume for bench-225), OHP 3x12 @ 115 (shoulder health + pressing volume), Rows 3x12 @ 70 (balance pressing). Why: Hypertrophy phase building muscle for strength later. OHP light due to previous shoulder tweak.'
-)
+### Extraction Process
 
-fitness-mcp:upsert(
-    kind='plan',
-    key='2025-10-22-run',
-    content='5pm Easy: 5mi @ 8:30/mi conversational. Why: Recovery run between tempo sessions. Keeps weekly volume up (sub-20-5k goal) without interfering with tomorrow lower body strength.'
-)
-```
+**From program → today's plan:**
+1. **Goals & exercises**: Which goal (p1/p2/p3), what type (from week), specific movements from program's architecture
+2. **Loads & progression**: Last session + program's method → today's prescription (e.g., last 185lbs RPE 8 + 2.5lb/week method = 187.5lbs)
+3. **Structure**: Warmup protocols, main work, accessories, cooldown (all from program)
+4. **Modifications**: Apply program's constraint handling (equipment, injuries, time, fatigue, sequencing)
+5. **Rationale**: How this serves goals, fits phase (Week X of Y), progresses from last session
 
-**Key:** Date + type format `YYYY-MM-DD-{strength|run|mobility|yoga|etc}`
+**From recent logs → progression:**
+- Last similar session → progress appropriately (weight, reps, RPE)
+- Example: "Last lower: Squat 205×5 RPE 8 → Today: 210×5 RPE 8 (+5lb per program)"
 
-**Content must include:**
-- Time/location if relevant ("6am", "gym", "track")
-- Exercises with sets/reps/loads OR workout type with duration/pace
-- Which goal(s) this plan supports (inline notes in parentheses)
-- Why: Rationale for exercise selection, loading, approach, or any modifications
+### Execution Details for Great Plans
 
-**Length:** 200-400 chars
+Plans should coach during the workout, not just list exercises. Include:
 
-**Real-world Examples:**
-```
-Push/Pull: HSPU 5x5 freestanding, archer pull-ups 4x6/side, ring dips 4x10-12, weighted pull-ups 4x5 @ +30kg (strength goal progression). Why: Fresh recovery state allows quality work for upper-body-strength goal. Full rest between sets prioritizes neural adaptation.
+**Strategic clarity:**
+- Goal connection with current state ("squat-315 p1, currently 225×5")
+- Phase context ("Week 4 of 8 hypertrophy block per program")
+- Specific progression from last session with numbers
 
-Track VO2 intervals: 4x3min @ 16-17 km/h (progressive), 90s recovery. Warmup 10min easy + strides. Why: Once-weekly high-intensity for sub-20-5k goal. VO2 adaptation without overreaching concurrent training load.
+**Tactical precision:**
+- **Movement cues**: Form priorities from knowledge ("chest up, knees track toes per knowledge")
+- **Tempo**: Where relevant ("2sec eccentric, explode up")
+- **RPE calibration**: What it means today ("RPE 8 = bar speed consistent + 2 reps left")
+- **Rest activities**: Mobility/antagonist work ("hip 90/90 stretches during 3min rest", "band pull-aparts rest periods")
+- **Contingencies**: Known issues ("knee pain → swap Bulgarian for goblet squat")
 
-Morning mobility: 20min easy yoga/stretching, focus hip openers and shoulder mobility. Why: Pre-regatta recovery priority. Prepares body for sailing demands (hip-mobility goal) without adding training stress before competition.
-```
-
-**Why must connect to goals:**
-- Reference specific goal keys inline or in Why section
-- Explain HOW this workout moves toward that goal (volume, intensity, skill, recovery)
-- Include today's specific rationale (fatigue state, phase, constraints)
-
-**Avoid:**
-- Day names (e.g., "Monday", "Today") - date key provides this
-- Verbose labels (e.g., "Strength Session -") - key suffix provides this
-- Relative time references (e.g., "tomorrow") - becomes stale immediately
-- Generic reasons without goal connection (e.g., "good for fitness")
+**Priority in 400-800 char limit:**
+1. Main work detail (cues, tempo, RPE, progression) - highest priority
+2. Rest period utilization (efficiency + recovery)
+3. Key accessories with purpose (not just exercise names)
+4. Complete why (goal + phase + progression from last session)
+5. Contingencies for known constraints
 
 ---
 
-## Plan Template (Before Workout)
+## Knowledge File Integration
 
-```python
+**When program references specific constraints or protocols, load relevant knowledge files for mechanisms and principles.**
+
+**Example - KNEE-HEALTH.md**: If program mentions knee protocol or knee injury history, load for understanding VMO stabilization, eccentric loading, tissue adaptation principles, modification decision trees, motor learning cues. Extract relevant principles and apply to user's specific context.
+
+**How to use knowledge files:**
+1. Check user's specific `knowledge` entries first (from overview) - their individual responses and constraints
+2. If program references domain-specific protocols → load relevant knowledge file
+3. Extract mechanisms and principles (don't copy protocols verbatim)
+4. Apply principles to user's specific context (their knowledge + program strategy)
+
+**Knowledge files provide expert mechanisms - user knowledge provides individual responses - program provides strategy.**
+
+---
+
+## Plan Template & Examples
+
+**Key format:** `YYYY-MM-DD-{type}` (e.g., `2025-11-09-lower`, `2025-11-09-intervals`)
+
+**Content structure:** `[Time/Location] {Type}: Warmup: {protocols}. Main: {exercises with sets×reps @ load RPE, cues, rest activities}. Accessories: {exercises}. Cooldown: {stretching}. Why: {goal + phase + progression}.`
+
+**Length:** 400-800 chars. See examples below for execution detail density.
+
+---
+
+### Example 1: Lower Strength - Complete Execution Detail (761 chars)
+
+```
 fitness-mcp:upsert(
     kind='plan',
-    key='YYYY-MM-DD-{type}',  # e.g., '2025-10-29-upper'
-    content='[Time] {Type}: {Exercise 1 sets×reps @ load}, {Exercise 2}... Why: {how this helps goals + today\'s rationale}.'
+    key='2025-11-09-lower',
+    content='6am Home Gym Lower (squat-315 p1). Warmup: Knee protocol 10min per program (slow eccentric step-downs 2×15, terminal knee ext 2×20 per knowledge), goblet squats 2×10, hip 90/90 stretches. Main: Back squat 5×5 @ 210lbs RPE 8 (last lower 205×5 RPE 8, +5lb per program progression) - cues: chest up, knees track toes per knowledge, 2sec eccentric, explode up, RPE 8 = bar speed consistent + 2 reps left - hip 90/90 mobility 3min rest. RDL 4×8 @ 160lbs RPE 7 (stretch bottom, squeeze glutes top) - band pull-aparts rest periods. Bulgarian split 3×8/leg @ 35lbs (knee stability per knowledge, control eccentric, quad-glute connection). Leg curl 3×12, calf 3×15. Cooldown: Hip flexor/quad stretch, foam roll IT band. Contingency: Knee pain → swap Bulgarian for goblet squat. Why: Week 4 of 8 hypertrophy block per program. Building squat-315 (currently 225×5). Last lower progressed clean, continue +5lb. Knee protocol maintains patellar tracking.'
 )
 ```
+
+### Example 2: Interval Run - Intensity Calibration & Progression (598 chars)
+
+```
+fitness-mcp:upsert(
+    kind='plan',
+    key='2025-11-09-intervals',
+    content='6am Track Intervals (sub-20-5k p1). Warmup: 10min easy, dynamic drills per program (leg swings, high knees, butt kicks). Main: 6×800m @ 3:45/km (last week 5×800m @ 3:50/km RPE 8, progressed volume+pace per program), target HR 175-180, RPE 8-9, 2min jog recovery. RPE calibration: RPE 8 = hard but sustainable, breathing heavy, could hold 2 more intervals. If HR >185 or form breaks → extend recovery 2:30min. First 3 intervals build rhythm, last 3 test fitness. Cooldown: 10min easy, walking. Why: Week 5 of 12 VO2max block per program. Building sub-20-5k (current 21:15). Last week 5×800 felt controlled RPE 8, ready for +1 interval + pace drop per program method. Hard session 2 of 3 this week per program distribution.'
+)
+```
+
 
 ---
 
 ## Logging Completed Workouts
 
-After the workout is done, log what actually happened:
+After the workout is done, log what actually happened.
 
-### Log Template (After Workout)
-
-```python
+**Log Template:**
+```
 fitness-mcp:upsert(
     kind='log',
-    key='YYYY-MM-DD-{type}',  # e.g., '2025-10-29-upper'
-    content='{Type} ({duration}): {Exercise 1 sets×reps @ load RPE}, {Exercise 2}... {Optional: how it felt}.'
+    key='YYYY-MM-DD-{type}',
+    content='{Type} ({duration}): {Exercise 1 sets×reps @ load RPE}, {Exercise 2...}. {Optional: how it felt, deviations, notes}.'
 )
 ```
 
-### Logging Workflow
+**Content**: Session type, duration, actual exercises/sets/reps/loads/RPE, deviations from plan, how it felt
 
-**User provides completed info:** Save immediately with `fitness-mcp:upsert(kind='log', key='YYYY-MM-DD-{type}', content='...')`
+**Length**: As detailed as provided. Comprehensive logs enable better progression tracking.
 
-**Build incrementally:** Same key updates existing log (e.g., adding exercises as completed)
+**Workflow**:
+- User provides completed info → Save immediately
+- Build incrementally → Same key updates existing log (add exercises as completed)
 
-**Example:**
+**Examples:**
 ```
-User: "Just did squats 5x5 at 225"
-→ fitness-mcp:upsert(kind='log', key='2025-10-29-lower', content='Squats 5x5 @ 225lbs')
+Lower (62min): Back squat 4×10 @ 205lbs RPE 8, RDL 3×10 @ 155lbs RPE 7, Bulgarian split 3×8/leg @ 30lbs RPE 8, leg curls 3×12, calf raises 3×15. Knee felt stable, no pain. Good pump.
 
-User: "Also did bench press 3x8 at 185" (same session)
-→ fitness-mcp:upsert(kind='log', key='2025-10-29-lower', content='Squats 5x5 @ 225lbs, Bench 3x8 @ 185lbs')
+Intervals (48min): 5×4min @ 16.5 km/h, avg HR 175. First 3 reps RPE 8, last 2 reps RPE 9. Completed all, good recovery between. Legs tired from morning squat but manageable.
+
+Climbing (75min): Warmup 4 routes V0-V2. Flagging drills V3-V4 20min (much better hand positioning). V6 project 6 burns, sent! Crimps felt strong. Shoulder prehab done, no pain.
 ```
 
 ---
 
-## Creating Workout Plan - Quick Reference
+## Quick Reference
 
-1. **Review everything**: Goals, program, week, knowledge, recent logs (use `overview(context='planning')`)
-2. **Propose workout**: Detailed exercises with rationale
-3. **Get approval**: Adjust based on feedback
-4. **Save**: `fitness-mcp:upsert(kind='plan', key='YYYY-MM-DD-{type}', content='...')`
+**Workflow**: Fetch context (`overview(context='planning')`) → Check program/week current → Extract program → today → Propose → Approve → Save → Guide → Log after completion
 
-**Remember:** Follow propose → approve → save pattern. Never save before client approves.
+**Key reminders:**
+- **Propose → approve → save** (never save before approval, UNLESS user provides completed workout info to log)
+- **Program has the strategy** - you apply it to today's context (location, time, fatigue, progression)
+- **Load knowledge files** for mechanisms when program references constraints
+- **Safety first** - always fetch context before programming
+- **Broad scope** - resistance training, cardio, skills practice, mobility, sport-specific sessions
+- **Length** - 400-800 chars with warmup, main, accessories, cooldown, complete why
