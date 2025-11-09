@@ -150,45 +150,42 @@ fitness-mcp:upsert(kind='week', key='YYYY-week-NN', content='Mon:... Week goal:.
 
 ---
 
-## Best Practice Week Scheduling
+## Week Scheduling Considerations
 
-### Hard/Easy Sequencing
+**These are factors to consider when mapping program to 7 days, not rigid rules. The program defines the strategy - week planning implements it for this specific week.**
 
-**Total hard days:** ≤ 4/week (from program guideline - strength + intervals/intense activity)
+### Recovery & Sequencing (If Program Allows Flexibility)
 
-**Separate similar sessions:**
-- 72hr minimum between similar modalities (lower→lower, intervals→intervals)
-- Hard→Easy→Hard pattern optimal (allows recovery between hard days)
-- **Don't stack:** Heavy squat + hard intervals same day = leg interference
+**Consider:**
+- How many hard days total? (program may specify, e.g., "4 hard days max" or be flexible)
+- How to space similar sessions? (program may require 72hr lower→lower, or allow back-to-back)
+- Which days are hard vs easy? (some programs specify, others leave flexible)
+- Interference between modalities? (program handles this - follow its guidance)
 
-**Good patterns:**
-- Mon: Upper (hard). Tue: Lower (hard). Wed: Easy cardio. Thu: Upper (hard). Fri: Lower (hard). Sat/Sun: Easy or OFF
-- Mon: Lower (hard). Tue: Easy run. Wed: Upper (hard). Thu: OFF. Fri: Intervals (hard). Sat: Easy. Sun: Long easy
+**Examples of program-driven decisions:**
+- Program says "72hr minimum between heavy lower days" → Week must respect this (Tue lower → Fri lower minimum)
+- Program says "separate hard cardio from heavy legs by 6hr" → Week schedules accordingly
+- Program says "4x strength, 3x cardio, 4 hard days total" → Week maps to specific days
+- Program flexible on exact days → Week optimizes for adherence (early week when fresh, etc.)
 
-**Bad patterns:**
-- Mon/Tue/Wed/Thu all hard (no recovery, accumulates fatigue)
-- Mon: Heavy squat. Tue: VO2 intervals (both legs, interference)
+### Timing & Adherence (Personal Optimization)
 
-### Session Placement
+**Consider what increases likelihood of completing the week:**
+- **Consistent times:** Habit building (6am daily vs varying) - but flexibility OK if needed
+- **Before obligations:** AM before work often fewer conflicts - but PM works if that's your preference
+- **Fixed activities:** Schedule around non-negotiables first (yoga class, climbing partners)
+- **Specific times:** "Mon 6am" more accountable than "Mon morning" - but adjust for life
 
-**Early week (Mon-Wed):** Hard sessions when freshest from weekend rest
-**Mid-week (Wed-Thu):** Easy sessions for active recovery
-**Late week (Sat-Sun):** Flexible make-up days if missed earlier, or easy volume
-**Fixed activities first:** Schedule training around non-negotiables (yoga, climbing, social commitments)
+**Program doesn't dictate timing - this is about personal adherence.**
 
-### Time Consistency
+### Equipment Context (From Program)
 
-**Same time daily:** Builds habit (6am every day > varying times)
-**Before obligations:** AM before work = fewer conflicts than PM
-**Match chronotype:** Morning person = AM training, night owl = PM OK
-**Specific times:** "Mon 6am" not "Mon morning" (accountability)
+**Program already specifies equipment strategy - week implements it:**
+- Program says "Office Mon/Wed (DBs only), Home Tue/Fri (full rack)" → Week follows exactly
+- Program says "Heavy compounds need barbell" → Week schedules where barbell available
+- Program gives travel adaptations → Week applies them when traveling
 
-### Equipment Optimization
-
-**Heavy compounds:** Where best equipment available (barbell squat @ home gym with rack)
-**DB/cable work:** Where DB-only (office gym lunch sessions = upper accessories)
-**Don't force mismatches:** Barbell exercises need barbell (use appropriate alternatives if not available)
-**Travel/constraints:** Accept equipment limitations, use program substitution framework
+**Week doesn't decide equipment strategy - just maps program's strategy to actual locations/days.**
 
 ---
 
