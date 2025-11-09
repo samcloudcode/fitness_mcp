@@ -63,15 +63,30 @@ Returns: goals, program (with all execution frameworks), week (current), logs (r
 **If program stale (3+ months) or doesn't match goals:**
 → Load PROGRAM.md to update comprehensive playbook first
 
-### Step 2: Identify This Week's Constraints
+### Step 2: Identify This Week's Constraints (Start with Context First)
 
-**Check for:**
+**Check recent logs and conversation for constraints BEFORE asking:**
+- User may have already mentioned: "I'm traveling Thu-Sat" or "Work deadline this week" or "Knee hurting"
+- Recent logs may show: Missed sessions (indicates stress/time), lower RPE (indicates recovery issues), pain notes
+- Program may already note: Known travel weeks, deload schedule, injury protocols
+
+**Only ask about constraints if:**
+1. Creating first-ever week (no pattern established)
+2. Significant change from last week (missed 3+ sessions, injury mentioned)
+3. Genuinely unclear (logs look normal, no constraints mentioned, but unsure)
+
+**Brief constraint check (if needed):**
+"Creating week plan. Any travel, schedule conflicts, or recovery concerns this week?" (One question, not interrogation)
+
+**Common constraints to check in context:**
 - Travel (which days? what equipment available?)
 - Work stress (high deadline week? need lighter volume?)
 - Recovery status (feeling run down? need extra rest?)
 - Schedule conflicts (meetings, social events, fixed activities?)
 - Equipment changes (gym closed? traveling? home only?)
 - Injury/pain (flare-up? need modifications?)
+
+**Default assumption if no constraints mentioned:** Normal week following program schedule
 
 ### Step 3: Map Program to 7 Days
 
