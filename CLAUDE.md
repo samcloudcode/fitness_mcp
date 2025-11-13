@@ -4,11 +4,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository combines two complementary components:
+This repository has **three complementary components**:
 
-1. **MCP Server** - A simplified fitness tracking server following Claude Code's philosophy: **minimal tool surface (4 tools), maximum flexibility**. Built with FastMCP and PostgreSQL, using a unified entry-based architecture where all data goes in the content field as natural text.
+1. **MCP Server** (`src/`) - Data storage and retrieval infrastructure
+   - 4 FastMCP tools: `upsert`, `overview`, `get`, `archive`
+   - PostgreSQL database with unified entry-based architecture
+   - **Purpose**: Persistent storage for all fitness data
 
-2. **Anthropic Skills Folder** - A collection of Claude Code skills (in `.claude/skills/`) that provide structured fitness coaching instructions. These skills can be exported and reused in other repositories or shared with other users.
+2. **Skills Folder** (`skills/`) - Single-LLM coaching workflows
+   - Markdown instruction files for Claude Code
+   - Progressive disclosure pattern (load what you need, when you need it)
+   - **Purpose**: Real-time coaching conversations with users
+   - **Exportable**: Can be copied to other repos
+
+3. **Planning System** (`planning/`) - Multi-agent artifact generation
+   - Agent instructions (`planning/instructions/`) with validation gates
+   - Domain protocols (`planning/protocols/`) for cross-checking
+   - **Purpose**: High-quality training plan creation through multi-agent review
+   - **Framework-agnostic**: Works with Claude Code, LangChain, CrewAI, AutoGen, etc.
+
+### When to Use Each Component
+
+**Use MCP Server** when:
+- Storing/retrieving user data (goals, programs, workouts, logs)
+- All components use the MCP server for data persistence
+
+**Use Skills** when:
+- Having real-time coaching conversations with users
+- Need single-LLM instruction-following approach
+- Working in Claude Code environment
+
+**Use Planning System** when:
+- Generating training plans that need high quality and safety validation
+- Want multi-agent cross-checking and review
+- Need framework-agnostic approach (not tied to Claude Code)
+- Disappointed with single-LLM instruction quality
+
+### Documentation Structure
+
+This file (CLAUDE.md) is the **main developer guide** covering:
+- Architecture and design patterns
+- MCP server implementation details
+- Skills folder structure and usage
+- Planning system overview
+- Development workflows and testing
+
+**For other documentation:**
+- **[README.md](README.md)** - Project overview and quick start guide
+- **[FITNESS_COACH_INSTRUCTIONS_SIMPLE.md](FITNESS_COACH_INSTRUCTIONS_SIMPLE.md)** - LLM instructions for using the MCP server (coaching-focused)
+- **[planning/README.md](planning/README.md)** - Multi-agent planning system architecture and framework integration
+- **[skills/](skills/)** - Exportable Claude Code skills with progressive disclosure pattern
+
+See [planning/README.md](planning/README.md) for detailed planning system architecture and usage with different LLM frameworks.
 
 ### 🎯 4 Core Tools (Down from 17)
 
@@ -33,19 +80,29 @@ This repository combines two complementary components:
 
 **Observability**: Integrated Logfire instrumentation for SQLAlchemy operations, configurable via environment variables (`LOGFIRE_SEND_TO_LOGFIRE`, `ENVIRONMENT`).
 
-**Naming Conventions**: Strict key naming and content structure rules ensure data consistency. See [NAMING_CONVENTIONS.md](NAMING_CONVENTIONS.md) for complete reference.
+**Naming Conventions**: Strict key naming and content structure rules ensure data consistency:
+- Goals: `goal-short-name` (e.g., `bench-225`, `marathon-2025`)
+- Program: `current-program` (single living document)
+- Week: `YYYY-week-NN` (e.g., `2025-week-43`)
+- Plan: `YYYY-MM-DD-type` (e.g., `2025-10-28-upper`)
+- Knowledge: `topic-subtopic` (e.g., `knee-tracking`, `shoulder-health`)
+- Logs: `YYYY-MM-DD-type` (e.g., `2025-10-29-upper`)
 
 ### Skills Structure
 
-The `.claude/skills/` folder contains exportable skill modules that provide fitness coaching capabilities:
+The `skills/` folder contains exportable skill modules that provide fitness coaching capabilities:
 
-- **`fitness-coach-essentials/`** - Core coaching logic and MCP tool usage patterns
-- **`fitness-coach-programming/`** - Workout programming and exercise science knowledge
-- **`fitness-coach-interaction/`** - User interaction patterns and conversational guidelines
+- **`fitness-coaching/`** - Complete fitness coaching skill with progressive disclosure
+  - `SKILL.md` - Main entry point (tools, data structure, critical rules)
+  - `PROGRAM.md` - Program creation workflows
+  - `WEEK.md` - Week planning workflows
+  - `WORKOUT.md` - Workout creation workflows
+  - `COACHING.md` - Real-time coaching guidance
+  - `knowledge/` - Domain-specific expertise files
 
-**Exporting Skills**: These skills can be copied to other repositories or shared with users who want fitness coaching capabilities in their own Claude Code environments. Each skill is self-contained with its own `skill.md` instruction file.
+**Exporting Skills**: These skills can be copied to other repositories or shared with users who want fitness coaching capabilities in their own Claude Code environments. Copy the `skills/` folder to your project, or install to `.claude/skills/` for auto-loading in Claude Code.
 
-**Using Skills**: Skills are automatically loaded when working in this repository. They provide context-aware guidance to Claude Code for fitness coaching tasks.
+**Using Skills**: Skills use progressive disclosure - load the main SKILL.md entry point, then load specific workflow files (PROGRAM, WEEK, WORKOUT, COACHING) as needed for each task.
 
 ## Development Commands
 
