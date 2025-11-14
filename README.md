@@ -45,7 +45,9 @@ fitness_mcp/
 │       └── movement-patterns.md
 ├── tests/                      # Test suite
 ├── migrations/                 # Database migrations
+├── .claude/                    # Claude Code configuration
 ├── CLAUDE.md                   # Project guidance for Claude Code
+├── MCP_SERVER_SETUP.md         # Hosted/local server setup guide
 └── README.md                   # This file
 ```
 
@@ -102,12 +104,37 @@ See [planning/README.md](planning/README.md) for detailed planning system docume
 
 ## Getting Started
 
-### Prerequisites
+### Using the Hosted Server
+
+The easiest way to get started is using the hosted MCP server:
+
+**Server URL**: https://simple-fitness-mcp.fastmcp.app/mcp
+
+**Quick Setup for Claude Code:**
+```bash
+# Add the server with your auth token
+claude mcp add --scope local --transport http simple-fitness-mcp \
+  https://simple-fitness-mcp.fastmcp.app/mcp \
+  --header "Authorization: Bearer YOUR_TOKEN"
+
+# Restart Claude Code
+```
+
+See **[MCP_SERVER_SETUP.md](MCP_SERVER_SETUP.md)** for complete setup instructions including:
+- Claude Code CLI configuration
+- Claude Desktop configuration
+- Authentication and troubleshooting
+
+### Local Development
+
+For local development or self-hosting:
+
+#### Prerequisites
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
 - PostgreSQL database (Supabase or local)
 
-### Setup
+#### Setup
 
 1. **Clone the repository**
 ```bash
@@ -132,14 +159,14 @@ Execute the SQL migration in your database:
 psql $DATABASE_URL < migrations/001_create_memories.sql
 ```
 
-### Usage
+#### Usage
 
 **Run tests:**
 ```bash
-uv run python tests/test_memory_server.py
+uv run pytest
 ```
 
-**Start the MCP server:**
+**Start the local MCP server:**
 ```bash
 uv run python -m src.mcp_server
 ```
@@ -148,6 +175,8 @@ uv run python -m src.mcp_server
 ```bash
 uv run memory-server
 ```
+
+See [MCP_SERVER_SETUP.md](MCP_SERVER_SETUP.md) for Claude Desktop configuration with both hosted and local servers.
 
 ## MCP Protocol
 
