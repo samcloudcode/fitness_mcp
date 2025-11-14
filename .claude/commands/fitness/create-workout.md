@@ -1,9 +1,5 @@
 # Workout Creation
 
-> **📋 Task Complexity Note**
->
-> Workout creation requires careful cross-checking (goals, program, week, knowledge, recent logs) and scoring before proposing. If your design scores <8.5, iterate to improve safety, progression logic, or execution detail.
-
 ## Background
 
 You are creating a specific workout plan for a training session. Workouts are executable documents that take the program's comprehensive strategy and apply it to today's specific session with exact exercises, loads, sets, reps, and execution details.
@@ -64,12 +60,12 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
 
 **Protocols provide evidence-based frameworks. Reference them to inform your thinking.**
 
-**Check protocol index:** `planning/protocols/INDEX.md` to determine which protocol files to load based on user's goals and constraints.
+**Load as needed:**
 
-**Load protocols as needed based on:**
-- User's injury history or limitations (for safety checks and modifications)
-- Specific issues mentioned in knowledge entries (knee, tendon, etc.)
-- Training modalities involved (VO2 max intervals, recovery methods, etc.)
+- **exercise-selection.md** - For choosing specific exercises, tier structure
+- **progression.md** - For calculating loads from last session, RPE-based adjustments
+- **injury-prevention.md** - For safety checks before programming exercises
+- **movement-patterns.md** - For within-session balance
 
 **Use protocols to:** Understand principles, calculate progressions, check safety.
 
@@ -104,6 +100,8 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
    - Fits phase (Week X of Y)
    - Progresses from last session
 
+**Reference progression.md for:** Load calculation methods, RPE-based adjustments, deload implementation.
+
 ### Step 4: Create Plan with Execution Detail
 
 **Great plans coach during the workout. Include:**
@@ -126,6 +124,10 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
 3. Key accessories with purpose
 4. Complete why (goal + phase + progression from last session)
 5. Contingencies for known constraints
+
+**Reference exercise-selection.md for:** Exercise tier structure, equipment substitutions, training age appropriateness.
+
+**Reference injury-prevention.md for:** Contraindications, modification decision trees, prehab protocols.
 
 ### Step 5: Critically Evaluate & Score
 
@@ -347,7 +349,8 @@ upsert(
 - Always fetch context before programming (NEVER skip)
 - Propose → approve → save (unless user provides completed workout to log)
 - Program has strategy - you apply it to today's context
-- Check `planning/protocols/INDEX.md` and load relevant protocols as needed
+- Load progression.md for calculation frameworks
+- Reference injury-prevention.md before exercise selection
 - Safety first - check ALL knowledge entries
 - Length: 400-800 chars with complete execution detail
 - Log after completion (actual performance, how it felt)

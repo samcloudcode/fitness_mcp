@@ -1,9 +1,5 @@
 # Week Planning
 
-> **📅 Task Note**
->
-> Week planning requires checking program strategy and real-world constraints (schedule, equipment, travel, fatigue). Score your plan and iterate if needed to ensure it's realistic and sustainable.
-
 ## Background
 
 You are creating a 7-day training schedule for a user. Weeks are scheduling documents that implement the program strategy within real-world constraints and maximize adherence.
@@ -92,8 +88,9 @@ From program frequencies:
 **Result:** 7-day calendar with type/location/time/focus for each day.
 
 **Reference protocols for guidance (not validation):**
-
-**Check protocol index:** `planning/protocols/INDEX.md` to determine which protocol files to load if needed for specific situations (fatigue management, injury modifications, recovery optimization, etc.)
+- **recovery-management.md** - If managing fatigue, deload decision, recovery assessment
+- **injury-prevention.md** - If emerging issues, overuse risk, volume adjustments
+- **progression.md** - For understanding where in program cycle
 
 ### Step 4: Set Week Goal & Plan for Adherence
 

@@ -1,11 +1,5 @@
 # Program Creation
 
-> **⚠️ COMPLEXITY WARNING**
->
-> Program creation is the hardest task in fitness coaching. It requires deep analytical thinking, cross-checking multiple data sources (goals, knowledge, preferences, logs), referencing evidence-based protocols, and multi-dimensional validation.
->
-> **Expect to iterate.** Your first design will likely score <8.5 and need refinement. This is normal and necessary for quality. Think hard, check thoroughly, and improve until you get it right.
-
 ## Background
 
 You are creating a comprehensive training program (1-3 month mesocycle) for a user. Programs are strategic documents showing how all goals fit together and providing the framework to achieve them.
@@ -77,13 +71,14 @@ This returns: goals, program (current if exists), week, plan (recent 5), prefere
 
 **Protocols provide evidence-based frameworks. Reference them to inform your thinking, not as validation checklists.**
 
-**Check protocol index:** `planning/protocols/INDEX.md` to determine which protocol files to load based on user's goals and constraints.
+**Load as needed:**
 
-**Load protocols as needed based on:**
-- User's injury history or limitations
-- Specific training goals (endurance, strength, etc.)
-- Known issues (knee problems, tendon issues, etc.)
-- Recovery modalities user employs (ice baths, sauna, etc.)
+- **injury-prevention.md** - When user has injury history, movement restrictions
+- **exercise-selection.md** - For choosing exercises, movement pattern coverage
+- **movement-patterns.md** - For balanced movement stimulus
+- **progression.md** - For progression frameworks by training age, deload protocols
+- **recovery-management.md** - For volume management, fatigue indicators
+- **vo2max-development.md** or other domain protocols - Based on user's specific goals
 
 **Use protocols to:** Understand principles, inform decisions, critically evaluate your plan.
 
@@ -208,11 +203,10 @@ Volume: 12-15 sets per session, recovery good, training 3x/week currently
 
 **Step 2: Reference Protocols**
 
-Check `planning/protocols/INDEX.md`:
-- Knee history → Load knee-health-prevention.md (valgus prevention, wide stance)
-- Shoulder history → (Note: No shoulder-specific protocol yet, apply general injury prevention principles)
-- Progression guidance → (Use knowledge of intermediate progression: weekly linear or wave loading, 2.5-5lb upper / 5-10lb lower)
-- Recovery planning → (Apply recovery principles: 4x/week appropriate, deload every 4 weeks, adequate rest days)
+- injury-prevention.md → Knee tracking principles, shoulder impingement contraindications
+- exercise-selection.md → Strength = compound movements, equipment constraints, wide stance modifications
+- progression.md → Intermediate lifter = weekly linear or wave loading, 2.5-5lb upper / 5-10lb lower
+- recovery-management.md → 4x/week appropriate, deload every 4 weeks, 3 rest days
 
 **Step 3: Design**
 

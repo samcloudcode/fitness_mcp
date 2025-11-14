@@ -1,9 +1,5 @@
 # Create Fitness Protocol(s)
 
-> **🔬 Research Quality Standard**
->
-> Protocol creation requires HIGH-QUALITY sources: peer-reviewed research, domain experts with credentials, and mechanism-based explanations. Avoid generic fitness blogs and surface-level content. Focus on understanding WHY things work (physiology, biomechanics) from authoritative sources.
-
 ## Input: $ARGUMENTS
 
 Create concise, constraint-based protocol file(s) for multi-agent planning systems. Input can be:
@@ -143,10 +139,9 @@ Select template based on category and write protocol.
 ## Prescription
 **When to apply:** [3-4 conditions]
 
-**Example format:** [workout with numbers] (customize based on individual needs, schedule, equipment)
+**Standard format:** [workout with numbers]
 - **Key parameters**: [values/ranges]
 - **Variants**: [alternatives]
-- **Individual adaptations**: [guidance for adjusting to constraints]
 
 **Context modifiers:** [4-6 modifications]
 
@@ -188,10 +183,9 @@ Select template based on category and write protocol.
 **When to apply:** [2-3 contexts]
 
 **How to apply:**
-- **Duration**: [range] (adapt to time constraints)
+- **Duration**: [range]
 - **Frequency**: [guideline]
 - **Intensity**: [guidance]
-- **Individual adaptations**: [guidance for customizing based on needs, schedule]
 
 **Integration contexts:**
 - **[Phase 1]**: [how fits]
@@ -218,9 +212,7 @@ Select template based on category and write protocol.
 ## Purpose
 [1 paragraph: movement pattern, why progression matters]
 
-## Example Progression Path
-(Adapt stages based on individual readiness, equipment, training context)
-
+## Progression Path
 **Stage 1**: [exercise]
 - Readiness: [criteria]
 - Load range: [parameters]
@@ -235,8 +227,6 @@ Select template based on category and write protocol.
 **Progress when:** [3-4 criteria]
 
 **Regress when:** [2-3 warning signs]
-
-**Individual adaptations:** [guidance for skipping stages or modifying based on constraints]
 
 ## Common Errors
 **"[Error]"** - [why problematic, correct] × 3-4
@@ -256,16 +246,12 @@ Select template based on category and write protocol.
 **When to apply:** [2-3 conditions]
 
 **How to apply:**
-- **Duration**: [range] (adapt to time constraints: [min] minimum effective dose)
-- **Example exercise circuit** (customize based on individual needs, equipment, time):
-  [list exercises with sets/reps/load]
-- **Time-constrained priority ([min])**: [core 2-3 exercises]
-- **Individual adaptations**: [guidance for selecting exercises based on specific weaknesses]
-- **Timing**: [when in session/week/day - avoid pre-X work if relevant]
+- **Exercises**: [list with sets/reps/load]
+- **Frequency**: [guideline]
 - **Progression**: [how advance]
 
 **Dosage ranges:**
-- **Frequency/Volume/Intensity**: [safe ranges]
+- **Volume/Intensity/Frequency**: [safe ranges]
 
 ## Contraindications
 **Do NOT apply if:** [3-4 red flags]
@@ -289,9 +275,6 @@ Select template based on category and write protocol.
 ```
 
 **Writing rules:**
-- **Examples, not prescriptions**: All workouts/exercises/progressions are examples to customize based on individual needs, equipment, time, schedule constraints - NEVER rigid requirements
-- **Adaptability**: Always include individual adaptation guidance - how to adjust for different contexts, constraints, weaknesses
-- **Time flexibility**: Provide time-constrained versions where relevant (minimum effective dose)
 - **Numbers over words**: "3-8 min" not "three to eight"
 - **Dense bullets**: One line per point
 - **No beginner content**: Assume intermediate+ fitness
@@ -451,12 +434,11 @@ See `planning/protocols/vo2max-development.md` for ideal Training Stimulus proto
 
 ## Quality Standards
 
-**Customizable, not rigid** - provide examples and adaptation guidance, never one-size-fits-all prescriptions
 **Assume intermediate+ fitness** - no beginner adaptations
 **Concise** - every sentence earns its place
 **Mechanism-first** - explain why, not just what
 **Quantified** - use numbers (%, ratios, time scales)
-**Actionable** - agents can apply without ambiguity, but with flexibility for individual contexts
+**Actionable** - agents can apply without ambiguity
 
 Target: 40-100 lines depending on category
 Scan time: < 60 seconds to grasp everything
