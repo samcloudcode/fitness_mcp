@@ -16,18 +16,64 @@ Full range-of-motion training (including knees-over-toes movements) builds tissu
 **How to apply:**
 - **Duration**: 10-15 min daily (adapt to time constraints: 5 min minimum effective dose)
 - **Example 8-exercise circuit** (customize based on individual needs, equipment, time):
-  1. Backward walk/sled pull: 2-3 min warmup (activates VMO, low joint stress)
-  2. Tibialis raises: 3×15-20 (deceleration control, shin balance)
-  3. Deep squat OR ATG split squat: 2×8-12 (full ROM quad strength)
-  4. Nordic curls OR hamstring bridge: 2×5-8 (eccentric hamstring, ACL protection)
-  5. Lateral band walks: 2×10-15 steps (glute medius, prevent valgus)
-  6. Bent-knee calf raises: 2×15+ (soleus, knee flexion support)
-  7. Single-leg control drill: 1-2×5-8/leg (balance, stability)
-  8. Hip mobility: 1-2 min (external rotation for deep positions)
-- **Time-constrained priority (5 min)**: Backward walk (2 min) + Tibialis raises (1 set) + Lateral band walks (2 sets)
+
+  1. **Backward walk/sled pull:** 2-3 min continuous at moderate pace
+     - **Purpose:** "Gentle strength training" for knees - activates VMO (vastus medialis obliquus, teardrop quad muscle) without eccentric shock
+     - **Execution:** Walk backward on treadmill (incline optional), OR drag sled with straps/rope backward pulling
+     - **Load:** Bodyweight (treadmill) or light sled (15-45lbs) - should feel work in quads without strain
+     - **Why it works:** Pumps blood/nutrients into knee joint (nourishing cartilage/meniscus), strengthens quads through full range, zero impact (no eccentric landing forces), Ben Patrick calls it "almost magical" for knee rehab
+     - **Progression:** Start 1-2 min, build to 3-5 min as tolerance improves
+
+  2. **Tibialis raises:** 3×20-25 reps (Ben Patrick dosage for runners/jumpers)
+     - **Purpose:** Strengthen front of shin (tibialis anterior) - critical for deceleration, absorbs landing forces, prevents shin splints
+     - **Execution:** Lean back against wall, feet flat, lift toes toward shins (dorsiflexion), hold 1s at top, control down
+     - **Load:** Bodyweight initially, add weight vest or hold DB on thighs when 25 reps easy
+     - **Why it works:** Most training strengthens calves (plantarflexion) but neglects tibialis - imbalance increases knee stress during running/landing. Strengthening tibialis helps knee track properly
+     - **Frequency:** 2-3x/week minimum, daily ideal (recovers quickly, low fatigue)
+
+  3. **ATG Split Squat:** 2×8-12 per leg (progress depth gradually over weeks/months)
+     - **Purpose:** Deep knee flexion strength + hip flexor lengthening in rear leg
+     - **Execution:** Back foot elevated (bench/box 12-18"), front knee travels FORWARD over toes as you descend (ATG = "ass to grass" depth), rear knee bends/lowers toward ground, torso upright
+     - **Progression path (critical - don't rush):**
+       - Week 1-4: Partial depth (thigh parallel), bodyweight or holding pole for balance
+       - Week 5-8: Below parallel depth, add light DB in goblet position
+       - Week 9-12: Full depth (rear knee near ground), increase DB load
+       - Month 4+: Full depth with heavier DBs or barbell
+     - **Why it works:** Develops immense VMO strength at deep knee angles, conditions patellar tendon through full ROM, lengthens hip flexors of rear leg (tight hip flexors pull pelvis forward, affecting knee alignment)
+     - **Key cue:** Front knee MUST travel forward over toes (don't restrict knee motion) - strengthens end-range, builds tolerance
+
+  4. **Nordic curls OR hamstring bridge:** 2×5-8 (eccentric hamstring, ACL protection)
+     - **Purpose:** Strengthen hamstrings (especially eccentric strength) to protect ACL by resisting anterior tibial translation (forward sliding of shin bone)
+     - **Execution (Nordic):** Kneel with ankles anchored, slowly lower body forward (eccentric control), catch with hands, push back to start
+     - **Execution (Bridge):** Lie on back, heels on bench, lift hips, curl heels toward glutes, control extension
+     - **Why it works:** Hamstrings counterbalance quad pull on knee - strong posterior chain prevents ACL strain during deceleration/cutting
+
+  5. **Lateral band walks:** 2×10-15 steps each direction (glute medius, prevent valgus)
+     - **Purpose:** Strengthen hip abductors (glute medius) to prevent knee valgus collapse (knees caving inward)
+     - **Execution:** Band around thighs/knees, quarter squat position, step laterally maintaining tension, knees pushed outward against band
+     - **Load:** Thick band or double loop (should feel significant burn by rep 10 - light bands insufficient stimulus)
+     - **Why it works:** Weak glute medius fails to control femur rotation, forcing knee into vulnerable valgus position that stresses ACL and medial meniscus
+
+  6. **Bent-knee calf raises (Soleus emphasis):** 2×15-20 reps
+     - **Purpose:** Strengthen soleus (deep calf muscle that fires when knee bent) - critical for endurance running and knee support
+     - **Execution:** Knees BENT ~45°, raise onto toes (plantarflexion), control down. Can do on slant board or step with knees forward over toes for greater ROM
+     - **Why different from straight-leg calf raises:** Bent knee recruits soleus preferentially (vs gastrocnemius with straight leg). Soleus is postural muscle, endurance-oriented, fires continuously during running when knee flexed
+     - **For runners:** Match calf volume 1:1 with tibialis work (both front and back of lower leg need equal strength)
+
+  7. **Single-leg control drill:** 1-2×5-8/leg (balance, stability)
+     - **Purpose:** Develop single-leg stability and proprioception
+     - **Execution:** Single-leg RDL, step-ups, pistol squat progressions, or single-leg balance with perturbations
+     - **Why it works:** Most knee injuries occur during single-leg loading (running, jumping, cutting) - training single-leg control prevents collapse patterns
+
+  8. **Hip mobility:** 1-2 min (external rotation for deep positions)
+     - **Purpose:** Adequate hip mobility allows deep squat positions without knee compensation
+     - **Execution:** 90/90 hip stretch, pigeon pose, frog stretch
+     - **Why it works:** Limited hip external rotation forces knee to twist inward to achieve depth - hip mobility allows natural knee tracking
+
+- **Time-constrained priority (5 min)**: Backward walk/sled (2 min) + Tibialis raises (1×20-25) + Lateral band walks (2×10-15 steps)
 - **Individual adaptations**: Select exercises addressing specific weaknesses (valgus collapse → prioritize #3-5, shin splints → prioritize #2+6, single-leg instability → prioritize #7)
-- **Timing**: As warmup before lower body training, standalone on rest days, or post-workout finisher (avoid pre-endurance work)
-- **Progression**: Increase depth, then resistance, then single-leg variants. Progress every 1-2 weeks if pain-free.
+- **Timing**: As warmup before lower body training, standalone on rest days, or post-workout finisher (avoid immediately pre-endurance work - save legs for running)
+- **Progression**: ATG splits → increase depth over 8-12 weeks, then add load. Sled → increase duration before adding weight. Tibialis/soleus → increase reps to 25-30, then add load
 
 **Dosage ranges:**
 - **Frequency**: Daily ideal, minimum 3-4×/week

@@ -88,9 +88,12 @@ From program frequencies:
 **Result:** 7-day calendar with type/location/time/focus for each day.
 
 **Reference protocols for guidance (not validation):**
-- **recovery-management.md** - If managing fatigue, deload decision, recovery assessment
-- **injury-prevention.md** - If emerging issues, overuse risk, volume adjustments
-- **progression.md** - For understanding where in program cycle
+
+Refer to [protocols/INDEX.md](../protocols/INDEX.md) for the current list of available protocols. Load relevant protocols based on:
+
+- Managing fatigue, deload decisions, recovery assessment
+- Emerging issues, overuse risk, volume adjustments
+- Understanding where in program cycle
 
 ### Step 4: Set Week Goal & Plan for Adherence
 
@@ -105,49 +108,27 @@ From program frequencies:
 - Specific times ("Mon 6am" not "Mon morning")
 - Backup options if miss session
 
-### Step 5: Critically Evaluate & Score
+### Step 5: Validate with Plan-Validator Agent
 
-**Before proposing, score your week against objectives (1-10 scale):**
+**Use the plan-validator agent to critically review your week schedule draft:**
 
-**Program Alignment (10 = perfect):**
-- Does this implement the program's training split correctly?
-- Are session frequencies matching program prescription (e.g., 4x strength)?
-- Does it respect program's sequencing rules (e.g., 72hr between heavy lower)?
-- Score: __/10. If <8, what doesn't match program?
+Use the Task tool to call the plan-validator agent with your drafted week schedule. The agent will:
+- Cross-reference against user's current program, knowledge entries (injuries/limitations), recent logs, and preferences
+- Check for program alignment (frequencies, split, sequencing rules)
+- Verify adherence feasibility (realistic given constraints, fixed activities respected)
+- Assess recovery adequacy (hard session spacing, deload implementation, rest days)
+- Validate constraint management (equipment contexts, travel, injury modifications)
 
-**Adherence (10 = highly likely to complete):**
-- Is this realistic given this week's specific constraints (travel, work, etc.)?
-- Are sessions scheduled at times user can actually train?
-- Does it respect fixed activities (yoga class, climbing partners, etc.)?
-- Are backup plans included for likely disruptions?
-- Score: __/10. If <8, what reduces completion likelihood?
+**Pass to the agent:**
+- The complete week schedule draft you've designed
+- Context: "This is a week plan proposal for week [YYYY-week-NN]. Please validate against the user's program and current context."
 
-**Recovery (10 = optimal):**
-- Are hard days appropriately spaced?
-- Is total hard day count sustainable (not overreaching)?
-- If deload week, is volume/intensity reduced per program protocol?
-- Are rest days adequate given recent training load (from logs)?
-- Score: __/10. If <8, what recovery issues exist?
+**Review the validation report and address:**
+- **Critical issues** (must fix before proceeding - overreaching, missed constraints)
+- **Important considerations** (should address - sequencing, equipment contexts)
+- **Suggestions** (incorporate if they improve adherence or recovery)
 
-**Constraint Management (10 = all addressed):**
-- Are equipment contexts correctly assigned (office vs home gym)?
-- Are injury modifications included where needed?
-- Is travel/schedule disruption handled appropriately?
-- Score: __/10. If <8, what constraints ignored?
-
-**Overall Score: (sum/4) = __/10**
-
-**If overall score <8.5, iterate on schedule before proposing.** Identify specific weaknesses and refine.
-
-**Common failure modes to check:**
-- ❌ Ignores program's rest day requirements
-- ❌ Stacks hard sessions back-to-back (overreaching)
-- ❌ Schedules training on day user mentioned they can't train
-- ❌ Wrong equipment context (programs barbell work at gym that only has DBs)
-- ❌ Doesn't account for travel (programs 4 sessions when traveling Thu-Sun)
-- ❌ No week goal set (unclear what to accomplish)
-
-**After scoring ≥8.5, proceed to propose.**
+**Iterate on your week schedule based on the validation feedback until the agent assessment is "Pass with modifications" or "Approved as-is".**
 
 ### Step 6: Propose & Save
 
@@ -201,6 +182,187 @@ fitness-mcp:upsert(
 **Program already specifies equipment strategy - week implements it:**
 - Program: "Office Mon/Wed (DBs only), Home Tue/Fri (full rack)"
 - Week: Maps to actual locations/days
+
+---
+
+## Same-Day Session Sequencing
+
+**When combining multiple modalities same day, use this ordering to maximize quality and minimize injury risk:**
+
+**Optimal order:** Skill/Power → Strength → Endurance
+
+**Rationale:**
+1. **Skill/Power work first** (plyometrics, Olympic lifts, sprints, handstands, technical drills)
+   - Requires maximum CNS freshness and neuromuscular coordination
+   - Speed/power output degrades rapidly with fatigue
+   - Injury risk increases if attempted when tired (landing mechanics breakdown, form deteriorates)
+   - Examples: Box jumps, sprint drills, muscle-up practice, handstand work
+
+2. **Strength second** (heavy compounds, hypertrophy work)
+   - Still needs neuromuscular capacity for safe heavy loading
+   - Pre-fatigue from skill work minimal (neural, not metabolic exhaustion)
+   - Can handle moderate fatigue better than power work
+   - Examples: Squats, deadlifts, bench press, weighted pull-ups
+
+3. **Endurance last** (cardio, conditioning, metabolic work)
+   - Performance minimally affected by pre-fatigue (can run tired, can't safely max squat tired)
+   - Acts as "metabolic finisher" - already fatigued, so cardio effort feels appropriate
+   - Lowest injury risk when fatigued (vs explosive/heavy movements)
+   - Examples: Runs, cycling, rowing intervals, conditioning circuits
+
+**Same-day intensity management:**
+- **Both HARD → Avoid if possible** (risk overreaching, reduce second session quality)
+- **One HARD + one EASY → OK** (e.g., heavy squats + easy Z2 jog 15min, OR easy strength + hard intervals)
+- **Both MODERATE → OK if total <90min** and adequate fueling/recovery
+
+**Separation minimum:**
+- If same session (back-to-back): Use ordering above, keep one modality easy
+- If same day separated: 6-8 hours minimum between hard sessions
+
+**Reference:** Load relevant protocols from [protocols/INDEX.md](../protocols/INDEX.md) for detailed interference effects and session spacing strategies.
+
+---
+
+## Week Structure Templates
+
+**Common training frequencies with example day assignments:**
+
+### 4-Day Template (Most Common)
+
+**Upper/Lower Split:**
+- Mon: Lower
+- Tue: Upper
+- Wed: OFF or easy cardio/mobility
+- Thu: Lower
+- Fri: Upper
+- Sat: Long endurance or OFF
+- Sun: OFF or active recovery
+
+**Full-Body + Endurance:**
+- Mon: Full-body strength
+- Tue: Intervals/HIIT
+- Wed: OFF
+- Thu: Full-body strength
+- Fri: Long easy cardio
+- Sat: Full-body strength or skill work
+- Sun: OFF
+
+**When to use:** Time-constrained, general fitness, maintenance phases
+
+---
+
+### 5-Day Template
+
+**Hybrid (Strength + Endurance):**
+- Mon: Lower strength
+- Tue: Upper strength
+- Wed: Endurance (intervals)
+- Thu: Lower strength
+- Fri: Upper strength
+- Sat: Long endurance
+- Sun: OFF or mobility
+
+**Push/Pull/Legs + Cardio:**
+- Mon: Push (chest/shoulders/triceps)
+- Tue: Easy cardio
+- Wed: Pull (back/biceps)
+- Thu: Intervals/HIIT
+- Fri: Legs
+- Sat: Long cardio or skill work
+- Sun: OFF
+
+**When to use:** Balanced strength + endurance goals, most hybrid athletes
+
+---
+
+### 6-Day Template (High Volume)
+
+**Upper/Lower + Endurance:**
+- Mon: Lower strength
+- Tue: Endurance (intervals)
+- Wed: Upper strength
+- Thu: Endurance (easy/long)
+- Fri: Lower strength
+- Sat: Upper strength + skill work
+- Sun: OFF or active recovery
+
+**Body Part Split + Cardio:**
+- Mon: Chest/Triceps
+- Tue: Back/Biceps
+- Wed: Endurance
+- Thu: Shoulders/Arms
+- Fri: Legs
+- Sat: Full-body or weak points
+- Sun: Long endurance
+
+**When to use:** Competitive athletes, bodybuilding+endurance, high work capacity
+
+---
+
+### Template Selection Criteria
+
+**Choose based on:**
+- **Time availability:** 4-day if <5 hrs/week, 5-day if 5-7 hrs/week, 6-day if 7+ hrs/week
+- **Recovery capacity:** Older athletes (40+) often better with 4-5 days, younger can handle 6
+- **Goals:** Strength-primary → 4-day with 2-3 cardio, Endurance-primary → 5-6 day with 3-4 cardio
+- **Lifestyle:** Irregular schedule → 4-day easier to maintain, consistent schedule → 5-6 day manageable
+
+**Adaptation:**
+- Templates are starting points - adjust to program's specific requirements
+- Program dictates frequencies (e.g., "4x strength, 3x endurance") - template shows how to schedule it
+- Week applies template to actual calendar constraints (travel, work, fixed activities)
+
+---
+
+## 6-Workout Cycle Alternative (Flexible Rotation)
+
+**Andy Galpin's unstructured approach for irregular schedules:**
+
+**Concept:**
+- Instead of rigid weekly schedule (Mon = legs, Tue = upper, etc.), create a SEQUENCE of workouts
+- Rotate through sequence regardless of calendar - if you miss a day, just do next workout in cycle whenever you can train
+
+**Example 6-workout cycle:**
+1. Heavy strength (squat focus)
+2. HIIT cardio (VO2 intervals)
+3. Mobility/skill (yoga, handstands)
+4. Moderate strength (upper body hypertrophy)
+5. Long endurance (easy run/ride 60-90min)
+6. Cross-training fun (MTB, swim, sport)
+
+**How it works:**
+- Monday: Do workout #1 (heavy strength)
+- Tuesday: Busy, skip training
+- Wednesday: Do workout #2 (HIIT) - pickup where left off
+- Thursday: Do workout #3 (mobility)
+- Friday: Travel, skip
+- Saturday: Do workout #4 (upper body) - continue sequence
+- Sunday: Do workout #5 (long run)
+- Next Monday: Do workout #6 (cross-training), then cycle restarts at #1
+
+**Benefits:**
+- Accommodates irregular schedules without feeling "behind"
+- Still hits all training elements in proper rotation
+- Reduces stress about "missing leg day" - you'll do it next time you train
+- Maintains variety and progression through cycle
+
+**When to use:**
+- Irregular work schedule (shift work, travel, on-call)
+- Life chaos periods (young kids, moving, major projects)
+- Prefer flexibility over structure
+- Still want comprehensive training (all modalities) without rigid calendar
+
+**Design your cycle:**
+- Include all modalities program requires (strength sessions, cardio types, mobility, skills)
+- Order logically (avoid back-to-back very hard sessions if training consecutive days)
+- Typical cycle length: 6-8 workouts (completes every 6-12 days depending on frequency)
+- Mark completed workouts to track position in cycle
+
+**Trade-off:**
+- PRO: Maximum flexibility, never "behind schedule"
+- CON: Less structured progression tracking (weeks in program become fuzzy)
+- Best for: General fitness, maintenance phases, life chaos periods
+- Avoid for: Competition prep, specific event training (those need calendar structure)
 
 ---
 
@@ -290,7 +452,7 @@ Why: Deadline Mon-Wed. Reduce volume 20%, sleep priority. Lower bar = higher adh
 
 User: "Knee twinge Tuesday, didn't train Wed"
 
-Reference injury-prevention.md for modification guidance.
+Reference relevant protocols from [protocols/INDEX.md](../protocols/INDEX.md) for modification guidance.
 
 ```
 2025-week-48:
@@ -332,6 +494,25 @@ Sun: Easy run or OFF.
 Week goal REVISED: Recover from illness, maintain 1-2x light strength if possible.
 Why: Got sick Tue night. Rest > pushing through.
 ```
+
+---
+
+## Week Schedule Quality Checklist
+
+Before finalizing, verify the week artifact contains:
+
+- [ ] All 7 days specified with session type/location/time/focus
+- [ ] Session types match program frequencies (e.g., 4x strength sessions)
+- [ ] Equipment contexts correct (office Mon/Wed, home Tue/Thu, etc.)
+- [ ] Hard sessions appropriately spaced per program requirements
+- [ ] Fixed activities respected (yoga class, climbing partners, meetings)
+- [ ] Week goal clearly stated (what to accomplish this 7 days)
+- [ ] Deviations from normal program explained (travel, fatigue, constraints)
+- [ ] Session focuses derived from program (e.g., "bench 5x5 focus", "deload 50% volume")
+- [ ] Specific times, not vague ("Mon 6am" not "Mon morning")
+- [ ] (if applicable) Backup options for likely disruptions
+- [ ] (if applicable) Modifications for injury/pain noted
+- [ ] Content length 200-600 chars
 
 ---
 

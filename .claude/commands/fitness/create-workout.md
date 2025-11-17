@@ -62,10 +62,12 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
 
 **Load as needed:**
 
-- **exercise-selection.md** - For choosing specific exercises, tier structure
-- **progression.md** - For calculating loads from last session, RPE-based adjustments
-- **injury-prevention.md** - For safety checks before programming exercises
-- **movement-patterns.md** - For within-session balance
+Refer to [protocols/INDEX.md](../protocols/INDEX.md) for the current list of available protocols. Load relevant protocols based on:
+
+- Exercise selection and tier structure
+- Progression calculations (load adjustments from last session, RPE-based progressions)
+- Safety checks (injury prevention before programming exercises)
+- Within-session movement pattern balance
 
 **Use protocols to:** Understand principles, calculate progressions, check safety.
 
@@ -100,7 +102,7 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
    - Fits phase (Week X of Y)
    - Progresses from last session
 
-**Reference progression.md for:** Load calculation methods, RPE-based adjustments, deload implementation.
+**Reference protocols for:** Load calculation methods, RPE-based adjustments, deload implementation.
 
 ### Step 4: Create Plan with Execution Detail
 
@@ -125,56 +127,29 @@ Returns: goals, program (with comprehensive frameworks), week, plan (recent), kn
 4. Complete why (goal + phase + progression from last session)
 5. Contingencies for known constraints
 
-**Reference exercise-selection.md for:** Exercise tier structure, equipment substitutions, training age appropriateness.
+**Reference protocols for:** Exercise tier structure, equipment substitutions, training age appropriateness, contraindications, modification decision trees, prehab protocols.
 
-**Reference injury-prevention.md for:** Contraindications, modification decision trees, prehab protocols.
+### Step 5: Validate with Plan-Validator Agent
 
-### Step 5: Critically Evaluate & Score
+**Use the plan-validator agent to critically review your workout draft:**
 
-**Before proposing, score your workout against objectives (1-10 scale):**
+Use the Task tool to call the plan-validator agent with your drafted workout. The agent will:
+- Cross-reference against user's goals, knowledge entries (injuries/limitations), recent logs, and current program
+- Check for safety issues, inappropriate progression, and goal/phase alignment
+- Verify loads are traceable to recent logs (not arbitrary)
+- Check execution detail is sufficient (cues, tempo, contingencies)
+- Ensure week focus is properly implemented (e.g., deload volume actually reduced)
 
-**Goal & Phase Alignment (10 = perfect):**
-- Does this serve the p1 goal? (correct exercises, intensity, volume)
-- Does it match program's current phase? (rep ranges, focus)
-- Does it implement week's session focus correctly?
-- Score: __/10. If <8, what's misaligned?
+**Pass to the agent:**
+- The complete workout draft you've designed
+- Context: "This is a workout plan proposal for [date]. Please validate against the user's context and recent training."
 
-**Progression (10 = optimal):**
-- Are loads based on recent logs? (traceable progression, not arbitrary)
-- Is progression rate appropriate? (not too aggressive: <5-10% increase)
-- If deload, is volume/intensity reduced correctly per program?
-- Does RPE target make sense given recent performance?
-- Score: __/10. If <8, what progression issues?
+**Review the validation report and address:**
+- **Critical issues** (must fix before proceeding - especially safety concerns)
+- **Important considerations** (should address - progression, execution detail)
+- **Suggestions** (incorporate if they improve the plan)
 
-**Safety (10 = fully safe):**
-- Are ALL knowledge entries respected? (no contraindicated exercises)
-- Are injury modifications included where needed?
-- Is volume appropriate given current fatigue (from recent logs)?
-- Are warmup protocols included for injury-prone areas?
-- Score: __/10. If <9, what's unsafe?
-
-**Execution Detail (10 = ready to coach):**
-- Are movement cues included from knowledge entries?
-- Is tempo/RPE calibration clear?
-- Are rest period activities specified (mobility, antagonist work)?
-- Are contingencies included for known issues?
-- Is complete "why" provided (goal + phase + progression)?
-- Score: __/10. If <8, what execution details missing?
-
-**Overall Score: (sum/4) = __/10**
-
-**If overall score <8.5, iterate on design before proposing.** Identify specific weaknesses and refine.
-
-**Common failure modes to check:**
-- ❌ Arbitrary loads (not from logs: "let's try 225" without checking last session)
-- ❌ Progression too aggressive (jumped 20lbs when should be 5lbs)
-- ❌ Ignored injury limitation (programmed deep squats when knowledge says knee pain)
-- ❌ Session doesn't match week focus (week says "deload" but programmed normal volume)
-- ❌ Missing warmup for injury area (no hip mobility when knowledge mentions knee issues)
-- ❌ No movement cues (generic "squat 5x5" without technique reminders)
-- ❌ No progression explanation (unclear why these loads vs last time)
-
-**After scoring ≥8.5, proceed to propose.**
+**Iterate on your workout based on the validation feedback until the agent assessment is "Pass with modifications" or "Approved as-is".**
 
 ### Step 6: Propose → Approve → Save
 
@@ -228,9 +203,10 @@ Overall: Good recovery, no issues
 
 **Step 2: Reference Protocols**
 
-- progression.md → Deload = 60% volume (keep intensity, reduce sets 5→3)
-- injury-prevention.md → Wide stance squats for knee tracking
-- exercise-selection.md → Tier structure (main/secondary/accessories)
+- Reviewed protocols/INDEX.md and loaded relevant protocols:
+- Progression → Deload = 60% volume (keep intensity, reduce sets 5→3)
+- Injury prevention → Wide stance squats for knee tracking
+- Exercise selection → Tier structure (main/secondary/accessories)
 
 **Step 3: Extract → Today**
 
@@ -344,13 +320,35 @@ upsert(
 
 ---
 
+## Workout Plan Quality Checklist
+
+Before finalizing, verify the workout artifact contains:
+
+- [ ] Warmup protocols specified (joint mobility, dynamic work, specific warmup sets)
+- [ ] Main work includes: exercises, sets, reps, load, RPE, tempo/cues
+- [ ] Loads traceable to recent logs (specific progression from last session)
+- [ ] Progression rate appropriate (<5-10% load increase)
+- [ ] ALL injury limitations respected (no contraindicated exercises)
+- [ ] Movement cues from knowledge entries included
+- [ ] RPE calibration clear (e.g., "RPE 8 = 2 reps left")
+- [ ] Rest period activities specified (mobility, antagonist work)
+- [ ] Accessories with purpose stated
+- [ ] Cooldown included (stretching, foam rolling)
+- [ ] Session matches week focus (if week says "deload", workout reflects it)
+- [ ] Rep ranges match program phase (hypertrophy/strength/peak)
+- [ ] Contingencies for known constraints (e.g., "knee pain → swap to...")
+- [ ] Complete "why" (goal + phase + progression explanation)
+- [ ] (if applicable) Multi-modal ordering: skill→strength→endurance
+- [ ] Content length 400-800 chars
+
+---
+
 ## Notes
 
 - Always fetch context before programming (NEVER skip)
 - Propose → approve → save (unless user provides completed workout to log)
 - Program has strategy - you apply it to today's context
-- Load progression.md for calculation frameworks
-- Reference injury-prevention.md before exercise selection
+- Load protocols for calculation frameworks, injury prevention, exercise selection
 - Safety first - check ALL knowledge entries
 - Length: 400-800 chars with complete execution detail
 - Log after completion (actual performance, how it felt)

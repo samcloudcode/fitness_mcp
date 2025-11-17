@@ -1,299 +1,374 @@
 # Program Creation
 
-## Background
+## Overview
 
-You are creating a comprehensive training program (1-3 month mesocycle) for a user. Programs are strategic documents showing how all goals fit together and providing the framework to achieve them.
+**What is a program?** A 1-3 month strategic document showing how all goals fit together and providing the framework to achieve them.
 
-**What a program contains:**
-- Goals & priorities with current state and targets
-- Training split & frequencies
-- Exercise architecture (main/secondary/accessories/mobility)
-- Progression framework
-- Recovery strategy (deload schedule, hard/easy distribution)
-- Constraint management (equipment, injury, schedule)
-- Complete rationale
+**Program contains:** Goals/priorities, training split, exercise architecture, progression framework, recovery strategy, constraint management, complete rationale.
 
-**Program hierarchy:**
-- **Program**: Comprehensive strategy for 1-3 months (all frameworks and principles)
-- **Week**: 7-day schedule implementing program (when/where for each session)
-- **Workout**: Today's session details (exact exercises, sets/reps/weights)
+**Hierarchy:**
 
-**Storage:**
-- Kind: `program`
-- Key: Always `current-program` (single living document)
-- Content: 400-600 chars with all strategic elements
-- Update when strategy changes or becomes stale (3+ months)
+- **Program** = 1-3 month strategy (frameworks & principles)
+- **Week** = 7-day schedule (when/where for sessions)
+- **Workout** = Today's session (exact exercises/sets/reps/weights)
+
+**Storage:** Kind `program`, key `current-program` (single living document), 400-600 chars. Update when strategy changes or becomes stale (3+ months).
 
 ---
 
-## Instructions
+# PART A: CORE WORKFLOW
 
-### Step 1: Extract All Context from MCP Server
+**Follow these 6 steps sequentially to create a program:**
 
-**Fetch:** `fitness-mcp:overview(context='planning')`
+## Step 1: Extract Context
 
-This returns: goals, program (current if exists), week, plan (recent 5), preferences, knowledge, logs (recent 10)
+**Fetch:** `overview(context='planning')` → Returns goals, program, week, plan, preferences, knowledge, logs
 
-**Extract and analyze:**
+**Analyze what you have:**
 
-**From Goals:**
-- Priorities (p1/p2/p3) → Volume/frequency allocation
-- Target metrics → Progression timeline
-- Deadlines → Periodization urgency
-- Current state → Realistic progress rate
-
-**From Knowledge:**
-- Injury history → Exercise modifications, prehab protocols
-- Movement limitations → Alternative exercises
-- Recovery patterns → Frequency decisions
-- Technique proficiency → Exercise complexity
-
-**From Preferences:**
-- Equipment access → Exercise selection per day
-- Time available → Volume/superset strategy
-- Activity preferences → Schedule around fixed activities
-- Training style → Exercise selection
-
-**From Logs (recent 10):**
-- Current working weights → Starting loads for program
-- Volume tolerance → Volume targets
-- Exercise responses → Exercise selection
-- Frequency patterns → Programming frequency
-
-**From Current Program (if exists):**
-- What's working → Keep and build on
-- What's not working → Modify or replace
-- How long running → Determine if need variation
+- **Goals:** Priorities → volume/frequency allocation; targets → progression timeline; deadlines → periodization urgency
+- **Knowledge:** Injuries → exercise modifications; limitations → alternatives; recovery patterns → frequency
+- **Preferences:** Equipment → exercise selection; time → volume strategy; activities → scheduling
+- **Logs (recent 10):** Working weights → starting loads; volume tolerance → targets; responses → exercise selection
+- **Current program:** What works → keep; what doesn't → fix; how long → need variation?
 
 **CRITICAL:** Extract from ACTUAL data, not assumptions.
 
-### Step 2: Reference Protocols for Domain Expertise
+**NOTE:** The current program is **context, not constraint**. Use it to understand:
+- What's been tried (exercise selection, frequencies, progressions)
+- What worked well (keep successful elements)
+- What didn't work (change unsuccessful elements)
+- How long it's been running (staleness indicator)
 
-**Protocols provide evidence-based frameworks. Reference them to inform your thinking, not as validation checklists.**
+**You are free to redesign completely** if you can create a better approach based on the user's current goals, knowledge, and recent training data. Programs are living documents meant to evolve. Don't feel bound by previous choices if better options exist.
 
-**Load as needed:**
+## Step 2: Reference Protocols
 
-- **injury-prevention.md** - When user has injury history, movement restrictions
-- **exercise-selection.md** - For choosing exercises, movement pattern coverage
-- **movement-patterns.md** - For balanced movement stimulus
-- **progression.md** - For progression frameworks by training age, deload protocols
-- **recovery-management.md** - For volume management, fatigue indicators
-- **vo2max-development.md** or other domain protocols - Based on user's specific goals
+**Load protocols as needed to inform thinking (not as validation checklists):**
 
-**Use protocols to:** Understand principles, inform decisions, critically evaluate your plan.
+Refer to [protocols/INDEX.md](../protocols/INDEX.md) for the current list of available protocols. Load relevant protocols based on:
 
-### Step 3: Design Comprehensive Strategy
+- User's injury history or movement restrictions
+- Specific training goals (strength, endurance, VO2 max, etc.)
+- Recovery and volume management needs
+- Exercise selection and movement pattern coverage
+- Progression frameworks appropriate for training age
 
-**Analyze deeply:**
-- Where are they NOW? (from logs)
-- Where do they want to be? (from goals)
-- What's the gap? (realistic progression calculation)
-- What are constraints? (from knowledge)
-- What are preferences? (from preferences)
+## Step 3: Design Strategy
 
-**Design comprehensive plan:**
+**Analyze the gap:**
+
+- NOW → GOAL: What's the gap? Realistic progression calculation from logs to targets
+- CONSTRAINTS: Injuries, equipment, schedule from knowledge/preferences
+- TOLERANCE: Volume/frequency from logs, recovery patterns
+
+**Design plan covering:**
+
 - Volume/frequency allocation (based on priorities and tolerance)
-- Exercise architecture (main/secondary/accessories matched to equipment and limitations)
-- Periodization timeline (based on deadlines and current state)
+- Exercise architecture (main/secondary/accessories matched to equipment & limitations)
+- Periodization timeline (deadlines and current state)
+- Progression scheme (matched to training age from protocols)
 - Equipment strategy (which gym when, travel adaptations)
-- Progression scheme (from progression.md, matched to training age)
-- Constraint protocols (injury rehab, deload schedule)
+- Deload schedule (every 4-8 weeks)
 - Hard/easy distribution (total hard days, sequencing)
 
-### Step 4: Critically Evaluate & Score
+## Step 4: Validate with Plan-Validator Agent
 
-**Before proposing, score your program against objectives (1-10 scale):**
+**Use the plan-validator agent to critically review your program draft:**
 
-**Goal Alignment (10 = perfect):**
-- Does this ACTUALLY achieve the p1 goals in the timeline? (realistic progression rate?)
-- Are p2/p3 goals appropriately maintained without interfering with p1?
-- Score: __/10. If <8, what needs adjustment?
+Use the Task tool to call the plan-validator agent with your drafted program. The agent will:
+- Cross-reference against user's goals, knowledge entries (injuries/limitations), recent logs, and preferences
+- Check for safety issues, load management problems, and goal alignment
+- Verify progression logic and recovery adequacy
+- Provide structured feedback on critical issues, important considerations, and suggestions
 
-**Safety (10 = fully safe):**
-- Does it account for ALL limitations in knowledge entries? (injuries, movement restrictions)
-- Are exercise modifications appropriate for constraints?
-- Is volume/frequency sustainable for this user's recovery capacity?
-- Score: __/10. If <9, what's unsafe?
+**Pass to the agent:**
+- The complete program draft you've designed
+- Context: "This is a program proposal. Please validate against the user's context."
 
-**Adherence (10 = highly sustainable):**
-- Does it fit life constraints? (equipment access, schedule, preferences)
-- Is it realistic given work/life/travel patterns?
-- Does it align with user's training style preferences?
-- Score: __/10. If <8, what reduces adherence?
+**Review the validation report and address:**
+- **Critical issues** (must fix before proceeding)
+- **Important considerations** (should address)
+- **Suggestions** (incorporate if they improve the plan)
 
-**Evidence-Based (10 = fully aligned):**
-- Does progression scheme match training age (from progression.md)?
-- Is volume appropriate per recovery-management.md principles?
-- Are exercises selected per exercise-selection.md criteria?
-- Score: __/10. If <8, what conflicts with protocols?
+**Iterate on your program based on the validation feedback until the agent assessment is "Pass with modifications" or "Approved as-is".**
 
-**Overall Score: (sum/4) = __/10**
+## Step 5: Propose to User
 
-**If overall score <8.5, iterate on design before proposing.** Identify specific weaknesses and refine.
+**Present strategy with:**
 
-**Common failure modes to check:**
-- ❌ Progression too aggressive (unrealistic timeline)
-- ❌ Missed injury limitation (unsafe exercise selection)
-- ❌ Equipment assumption (user doesn't have access)
-- ❌ Ignores schedule constraint (programs Wed when user travels)
-- ❌ Volume too high (doesn't match logs' sustainable frequency)
-
-**After scoring ≥8.5, proceed to propose.**
-
-### Step 5: Propose Program
-
-Present comprehensive strategy with:
-- Training frequencies and approach
-- How it integrates preferences (equipment contexts, fixed activities)
-- Main/secondary/accessory breakdown
-- Starting weights/loads (from logs)
-- Injury prevention protocols
-- Progression timeline
-- Equipment strategy
-- Constraint management
-- Complete rationale
+- Training frequencies & split (4x upper/lower, 3x full-body, etc.)
+- Exercise architecture (main/secondary/accessories/mobility)
+- Starting weights (from logs)
+- Progression timeline & method
+- Equipment strategy & constraint management
+- How it addresses ALL injury/movement limitations
+- Complete rationale (why this approach)
 
 **NOT a daily schedule** - that's for week planning.
 
-### Step 6: Get Approval & Save
+## Step 6: Get Approval & Save
 
-After approval:
-
-```python
-fitness-mcp:upsert(
-    kind='program',
-    key='current-program',
-    content='[comprehensive strategy 400-600 chars with all strategic elements]'
-)
-```
-
-**After saving:**
-- Confirm success
-- Summarize key features
-- Highlight how limitations addressed
-- Suggest next steps
-
----
-
-## Example: Complete Execution
-
-**User Request:** "Create a 12-week strength program for rugby, training 4x/week"
-
-**Step 1: Extract from overview(context='planning')**
-
-```
-# Goals:
-"rugby-strength" - increase maximal strength for scrums (p1)
-Current: Squat 225x5, Bench 185x5, Deadlift 275x5
-Target: Squat 315x5, Bench 225x5, Deadlift 315x5 by April (5 months)
-
-# Knowledge:
-"knee-tracking": Knee issues with narrow stance, need wide stance squats
-"shoulder-history": Previous impingement, avoid overhead pressing behind neck
-
-# Preferences:
-"equipment-home-gym": Barbell, rack, bench, limited dumbbells
-"schedule-constraint": Train Mon/Tue/Thu/Sat (work travel Wed/Fri)
-
-# Recent Logs:
-Squat 5x5 @ 225lbs RPE 7, Bench 4x8 @ 175lbs RPE 7
-Deadlift 3x5 @ 275lbs RPE 8, OHP 3x8 @ 115lbs RPE 7
-Volume: 12-15 sets per session, recovery good, training 3x/week currently
-```
-
-**Step 2: Reference Protocols**
-
-- injury-prevention.md → Knee tracking principles, shoulder impingement contraindications
-- exercise-selection.md → Strength = compound movements, equipment constraints, wide stance modifications
-- progression.md → Intermediate lifter = weekly linear or wave loading, 2.5-5lb upper / 5-10lb lower
-- recovery-management.md → 4x/week appropriate, deload every 4 weeks, 3 rest days
-
-**Step 3: Design**
-
-Analysis:
-- 225lb → 315lb squat in 5 months = +90lbs = ~4.5lb/week needed
-- Currently 3x/week → wants 4x/week (matches schedule Mon/Tue/Thu/Sat)
-- 12-week block, intermediate lifter
-- MUST: wide stance squats (knee), no behind-neck press (shoulder)
-
-Decisions:
-- Upper/Lower split 4x/week (fits schedule, equipment contexts)
-- Block periodization: 3 blocks x 4 weeks (hypertrophy → strength → peak)
-- Wide stance squats ONLY
-- Front OHP only (shoulder safety)
-- Wave loading (prevent staleness)
-- Deload week 4, 8, 12
-
-**Step 4: Propose**
-
-"Based on your context:
-
-**Training Split:** Upper/Lower 4x/week (Mon/Tue/Thu/Sat matching schedule)
-- Mon: Lower (squat focus)
-- Tue: Upper (bench/press focus)
-- Thu: Lower (deadlift focus)
-- Sat: Upper (power/accessories)
-
-**Progression:** 3 blocks to April
-- Block 1 (Weeks 1-4): Hypertrophy - 4x8-12 reps
-- Block 2 (Weeks 5-8): Strength - 4x5-8 reps
-- Block 3 (Weeks 9-12): Peak - 3x3-5 reps
-- Deload every 4th week (60% volume)
-
-**Exercise Architecture:**
-- Main: Squat (WIDE STANCE), Bench, Deadlift, OHP (front only)
-- Secondary: RDL, rows, face pulls (shoulder prehab)
-- Accessories: Lunges, DB work, core
-- Daily: Hip mobility
-
-**Starting Loads** (from logs):
-- Squat: 225→285 by week 12
-- Bench: 185→215 by week 12
-- Deadlift: 275→335 by week 12
-
-**Safety:**
-- Wide stance squats only (knee tracking)
-- No behind-neck pressing (shoulder history)
-- Face pulls daily (shoulder prehab)
-
-**Why:**
-- Rugby April deadline needs strength peak
-- Upper/Lower 4x matches Mon/Tue/Thu/Sat schedule
-- Block periodization builds foundation → strength → peak
-- Addresses knee + shoulder limitations
-- Home gym equipment sufficient
-
-Approve to save?"
-
-**Step 5: Save**
+After user approval:
 
 ```python
 upsert(
     kind='program',
     key='current-program',
-    content='''12wk strength for rugby (p1): 4x/week upper/lower (Mon/Tue/Thu/Sat).
-    Block 1-3 progress 8-12→5-8→3-5 reps. Squat 225→285, bench 185→215, deadlift 275→335.
-    Wide stance squats ONLY (knee tracking), front press only (shoulder safety).
-    Daily hip mobility, face pulls. Deload week 4,8,12 (60% volume).
-    Why: April rugby peak, matches schedule/equipment, addresses knee+shoulder limitations.'''
+    content='[400-600 chars: strategy summary with goals, split, progression, constraints, rationale]'
 )
 ```
+
+**Confirm success:**
+
+- Summarize key features
+- Highlight how limitations addressed
+- Suggest: "Ready to plan this week's schedule?"
+
+---
+
+## Example Execution
+
+**User:** "Create 12-week strength program for rugby, 4x/week"
+
+**Step 1 - Extract Context:**
+
+Overview shows rugby goal (Squat 225→315, Bench 185→225 by April). Knee tracking issues, shoulder impingement. Home gym, trains Mon/Tue/Thu/Sat. Currently 3x/week, 12-15 sets/session, good recovery.
+
+**Step 2 - Load Protocols:**
+
+Reviewed protocols/INDEX.md and loaded: injury-prevention (knee/shoulder), progression (intermediate = wave loading), recovery-management (4x/week OK)
+
+**Step 3 - Design:**
+
+Upper/Lower 4x/week. Block periodization (hypertrophy→strength→peak). Wide stance squats ONLY. Front OHP only. Deload weeks 4,8,12.
+
+**Step 4 - Score:**
+
+Goal alignment 9/10, Safety 10/10, Adherence 9/10, Evidence-based 9/10. Overall: 9.25/10 ✓
+
+**Step 5 - Propose:**
+
+"Upper/Lower 4x/week (Mon/Tue/Thu/Sat). 3 blocks: hypertrophy (4x8-12) → strength (4x5-8) → peak (3x3-5). Wide stance squats, front OHP only (addresses knee/shoulder). Starting from logs: Squat 225, Bench 185, Deadlift 275. Deload every 4 weeks. Approve?"
+
+**Step 6 - Save:**
+
+```python
+upsert(kind='program', key='current-program',
+       content='12wk rugby strength: 4x upper/lower (Mon/Tue/Thu/Sat). Blocks 1-3: 8-12→5-8→3-5 reps. Squat 225→285, bench 185→215, deadlift 275→335. Wide stance squats ONLY (knee), front OHP only (shoulder). Daily hip mobility, face pulls. Deload wk 4,8,12. Why: April peak, fits schedule/equipment, addresses limitations.')
+```
+
+---
+
+# PART B: REFERENCE MATERIAL
+
+**Use these sections when relevant to the user's situation:**
+
+## Block Emphasis Rotation
+
+**When to use:** Managing competing priorities (strength + endurance), avoiding plateaus, addressing periodization needs
+
+**Strength-Focus Block (8-12 weeks):**
+
+- Training: 3-4x strength, 2x endurance (maintenance dose)
+- Volume: Full progressive overload in strength, endurance reduced to 1 long Z2 + 1 tempo/HIIT
+- Nutrition: Slight calorie surplus or maintenance, protein prioritized
+- Goal: Build muscle mass, increase maximal strength, maintain aerobic base
+- Example: "Bench 225 by June" priority - 4x upper/lower split, 2x easy runs 30-40min
+
+**Endurance-Focus Block (8-12 weeks):**
+
+- Training: 2x strength (maintenance dose), 3-5x endurance (progressive mileage/intervals)
+- Volume: Strength reduced to compounds only (2-3 sets), endurance builds weekly
+- Nutrition: Adequate carbs for fueling, protein maintained, possible slight deficit if race weight goal
+- Goal: Build aerobic capacity, improve VO2 max/distance, maintain muscle mass
+- Example: "20K run" priority - 2x full-body strength, 3-4x runs + 1x cycling/swimming
+
+**Transition Between Blocks:**
+
+- Deload week before switching emphasis (50% volume both modalities)
+- Assess: Did previous block achieve goal? What needs focus next?
+- Redefine p1/p2 priorities (previous p1 may become p2 for next block)
+
+**Why this works:**
+
+- Each quality gets dedicated progressive overload period (avoid trying to maximize both simultaneously)
+- Maintenance dose (2x/week, reduced volume) prevents loss of secondary quality
+- 8-12 weeks sufficient for meaningful adaptation without excessive staleness
+- Year-round: Alternate blocks = continuous progress in both domains over time
+
+**Block rotation example (yearly):**
+
+- Weeks 1-12: Strength focus (p1: bench-225, p2: maintain 20mpw running base)
+- Week 13: Deload both
+- Weeks 14-25: Endurance focus (p1: 20K run, p2: maintain strength)
+- Week 26: Deload both
+- Weeks 27-38: Strength focus (p1: squat-315, p2: maintain aerobic fitness)
+- Week 39: Deload both
+- Weeks 40-52: Endurance focus (p1: improve VO2 max, p2: maintain muscle)
+
+---
+
+## Yearly Macrocycle Planning
+
+**Four-phase model for long-term development:**
+
+**Base Phase (Weeks 1-12, typically Jan-Mar):**
+
+- Emphasis: Aerobic foundation, mobility, general strength
+- Training: High-volume low-intensity endurance (80/20 polarization), moderate strength (full-body 2-3x/week)
+- Focus: Build work capacity, address movement limitations, "bulletproof" joints with prehab
+- Example: Long easy runs/rides (60-90min Z2), mobility daily, compound lifts moderate weight
+- Why: Foundational period establishes base for later intensity, low injury risk, high adherence
+
+**Build Phase (Weeks 13-26, typically Apr-Jun):**
+
+- Emphasis: Increase intensity in both strength and endurance
+- Training: Add HIIT sessions (VO2 max intervals 1-2x/week), heavier strength loads (hypertrophy/strength phases)
+- Focus: Progressive overload, skill development (improve technique, learn new movements)
+- Example: 4×4min VO2 intervals, 3×5 strength protocol, maintain mobility work
+- Why: Base allows tolerating higher intensity, gains accelerate with increased stimulus
+
+**Peak/Specific Phase (Weeks 27-38, typically Jul-Sep):**
+
+- Emphasis: Goal-specific training, performance optimization
+- Training: Target event/milestone (longer runs at race distance, strength peaking protocol, competition prep)
+- Focus: Specificity - exactly what goal requires (if 20K run → runs at 20K pace, if strength → heavy singles/doubles)
+- Example: 18K runs at target pace, taper strength to 2x/week maintenance near event
+- Why: Specificity principle - adaptations become highly targeted to goal demands
+
+**Recovery Phase (Weeks 39-52, typically Oct-Dec):**
+
+- Emphasis: Active rest, cross-training, rehab nagging issues, plan next year
+- Training: Unstructured play, variety (mountain biking, swimming, yoga, sports), light strength
+- Focus: Mental break, address weaknesses, maintain general fitness without structure
+- Example: Fun activities 3-4x/week (no strict program), mobility/prehab focus, social training
+- Why: Prevents burnout, allows full physiological recovery, opportunity to fix imbalances before next cycle
+
+**Applying the macrocycle:**
+
+- Map year based on events/goals (if race in September, peak phase July-September)
+- Not all years need all 4 phases (can do Base → Build → Base → Build for general fitness)
+- Adjust phase lengths based on goals (competitive athlete might have multiple Peak phases, general fitness might extend Base phase)
+- Always include recovery periods (even mini-recoveries every 3-4 months)
+
+---
+
+## Performance Feedback Loop
+
+**Evaluate every 4-6 weeks - adjust upcoming block based on objective feedback:**
+
+**Strength metrics:**
+
+- Are working weights increasing? (e.g., squat 225 → 240 over 6 weeks = on track)
+- RPE at given load decreasing? (e.g., 185lb bench was RPE 8, now RPE 7 = strength gain)
+- If plateau: Increase volume, change rep scheme, add frequency, or prioritize strength focus block
+
+**Endurance metrics:**
+
+- Is pace at given heart rate improving? (e.g., Z2 run pace 10min/mile → 9:30min/mile = aerobic improvement)
+- Can complete longer distances? (e.g., 10K easy → 15K easy over 6 weeks = work capacity gain)
+- VO2 max intervals getting easier? (e.g., 4×4min HR recovery faster between intervals = adaptation)
+- If plateau: Increase frequency, add interval session, prioritize endurance focus block
+
+**Mobility metrics:**
+
+- ROM improving in target areas? (e.g., squat depth increasing, shoulder overhead reach improving)
+- Movement quality better? (e.g., knee tracking improved in lunges, hip hinge cleaner)
+- If plateau: Increase daily frequency, add dedicated mobility session, address specific limitations
+
+**Joint health / pain signals:**
+
+- Any new persistent pain? (e.g., knee ache after runs = warning sign, reduce volume/impact)
+- Existing limitations improving? (e.g., previous shoulder twinge gone = prehab working)
+- If pain emerging: Immediately modify (reduce load/volume, eliminate aggravating movements, increase prehab work)
+
+**Recovery indicators:**
+
+- Sleep quality, resting heart rate, HRV trends, subjective energy levels
+- If deteriorating: Deload immediately (don't wait for scheduled deload), reduce total volume 30-40%
+
+**Adjustment decision tree:**
+
+1. **Both strength and endurance progressing:** Continue current program, ride the wave
+2. **One modality plateaued, other progressing:** Consider shifting to focus block for plateaued quality
+3. **Both plateaued:** Deload week, then reassess (may need more recovery, change in stimulus, or reset expectations)
+4. **Injury/pain signal:** Address immediately (reduce aggravating modality, increase prehab, assess form)
+5. **Life stress increased:** Reduce training volume 20-30% temporarily (work deadline, travel, family stress taxes same recovery system)
+
+**Example application:**
+
+- Week 6 evaluation: Squat +15lbs (good), bench plateaued (stuck), runs improving (good), sleep poor (concerning)
+- Decision: Next 6 weeks - maintain lower body, increase upper body frequency/volume, reduce total run volume slightly to improve sleep
+- Week 12 re-evaluation: Bench now improving, sleep better, reassess again
+
+---
+
+## Adherence Optimization
+
+**Best program = one you'll actually follow. Build in sustainability:**
+
+**Enjoyment principle:**
+
+- Include activities you LOVE (if you love mountain biking, count it as endurance vs forcing yourself to run)
+- Rotate exercises (if barbell squats feel stale, switch to goblet squats, box squats, or split squat variations for 4-6 weeks)
+- Social training (yoga class, group ride, climbing gym with friends > solo basement grind for many people)
+- Skills/play (handstand practice, obstacle courses, sports keep training fun vs pure strength/cardio grind)
+
+**Flexibility within structure:**
+
+- Program "workout types" not rigid "Monday must be X" (if life disrupts Monday, do that workout Tuesday instead)
+- Minimum viable dose defined (if busy week, hit 2x strength + 1x endurance "anchor" sessions, skip optional extras)
+- Backup plans (if gym closed, have bodyweight or home equipment alternative programmed)
+
+**Realistic integration:**
+
+- Schedule sessions at times you'll ACTUALLY train (if mornings never happen, don't program 6am workouts)
+- Equipment access (don't program barbell work if you don't have regular gym access)
+- Travel weeks (have "hotel workout" or "minimal equipment" variations pre-planned)
+
+**Mental freshness:**
+
+- Monthly themes (if feeling stale, try "Mobility March," "Handstand April" for variety while maintaining program)
+- Deload weeks (physical recovery + mental break from intensity)
+- Competition/events (sign up for fun run, powerlifting meet, obstacle race to make training feel purposeful)
+
+**Tracking without obsession:**
+
+- Log enough to see progress (working weights, run distances), not so much it's burdensome
+- Celebrate wins (hit new 5RM, ran longest distance, pain-free training week)
+- Don't let missed sessions derail you (one missed workout = 0% impact on long-term progress, guilt spiral = 100% impact on adherence)
+
+**If adherence drops:**
+
+- Assess: Too much volume? Boring? Not seeing results? Life stress?
+- Adjust: Reduce volume 30%, swap activities, change gym/environment, find training partner
+- Remember: Consistency over years > perfection for weeks
+
+**Example adherence-optimized program:**
+
+- User loves: Spinning, yoga classes, mountain biking, hates: running, enjoys: lifting with friends
+- Program: 2x strength (gym with buddy), 2x spinning class, 1x yoga class, 1x MTB ride (weekend)
+- Result: Hits all modalities (strength, cardio, mobility, skills) using preferred activities = high adherence
 
 ---
 
 ## Goal-Driven Programming Framework
 
 **Prioritize by p-value:**
+
 - **p1:** Primary focus - most volume, highest frequency, best recovery
 - **p2:** Secondary - maintain, don't progress aggressively
 - **p3:** Minimal viable dose - don't interfere with p1/p2
 
 **Handling competing p1 goals:**
+
 - Sequential blocks (12 weeks each, alternate focus)
 - Concurrent (train both, accept 30% slower progress)
 - Redefine priorities (make one p2)
 
-**Deload protocols (from recovery-management.md):**
+**Deload protocols (from protocols):**
+
 - When: Every 4-8 weeks scheduled, or reactive
 - How: 50% volume OR 50% intensity OR 50% frequency (choose one)
 - Why: Dissipates fatigue, maintains neural patterns
@@ -310,6 +385,26 @@ upsert(
 ❌ Progression inappropriate for training age
 ❌ Programming contraindicated exercises
 ❌ Too verbose (>600 chars) or too vague (<400 chars)
+
+---
+
+## Program Quality Checklist
+
+Before finalizing, verify the program artifact contains:
+
+- [ ] Goals with priorities, current state, targets, and deadlines included
+- [ ] Training frequencies specified (e.g., "4x strength, 3x endurance")
+- [ ] Exercise architecture defined (main/secondary/accessories/mobility)
+- [ ] Progression framework specified with method (e.g., "+5lb/week", "wave loading")
+- [ ] Deload schedule included (e.g., "every 4 weeks, 50% volume")
+- [ ] Recovery strategy clear (hard/easy distribution, rest days)
+- [ ] ALL injury limitations from knowledge entries addressed with modifications
+- [ ] Equipment constraints managed (which gym when, travel adaptations)
+- [ ] Schedule constraints integrated (travel days, work conflicts)
+- [ ] Progression rate realistic for training age
+- [ ] Complete "why" rationale connecting to goals
+- [ ] Content length 400-600 chars
+- [ ] (if applicable) Block emphasis rotation defined for competing goals
 
 ---
 

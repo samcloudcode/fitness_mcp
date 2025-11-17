@@ -169,3 +169,16 @@ COLD EXPOSURE PRIORITY?
 ## References
 
 Key evidence base: 2024 meta-analysis (Piñero et al.) on CWI and hypertrophy, 2025 RCT on infrared sauna and resistance training (Frontiers), Rhonda Patrick (FoundMyFitness) synthesis on cold exposure and mTOR suppression, multiple studies on post-exercise sauna bathing and VO2 max enhancement (EndureIQ, Journal of Applied Physiology).
+
+## Protocol Application Checklist
+
+When integrating sauna/cold exposure, verify:
+
+- [ ] (if cold exposure post-strength) Avoided within 0-4hr of hypertrophy training
+- [ ] (if cold exposure post-strength) Scheduled 8hr+ after OR on different day
+- [ ] (if sauna for endurance) Protocol specified (20-30min @ 80-100°C, 3x/week post-aerobic)
+- [ ] (if contrast therapy) Sequence clear (sauna→cold→rest, 2-3 cycles, end cold)
+- [ ] (if contrast therapy) Avoided within 4hr of hypertrophy session
+- [ ] Application timing respects training interference windows
+- [ ] (if hypertrophy priority) Default rule: cold only on aerobic days, rest days, or 8hr+ post-strength
+- [ ] Common errors avoided (see section above)

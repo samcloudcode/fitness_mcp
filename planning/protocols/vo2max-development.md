@@ -86,3 +86,17 @@ Strength block? YES → Skip (interference effect)
 Recovery capacity? LOW (< 4x/week) → Zone 2 + threshold better
                    HIGH → APPLY VO2 max 1-2x/week
 ```
+
+## Protocol Application Checklist
+
+When programming VO2 max work, verify:
+
+- [ ] Aerobic base established (minimum 8 weeks Zone 2 training)
+- [ ] Interval structure specified (3-8min work intervals @ 90-100% max HR)
+- [ ] Total work time appropriate (12-20min high-intensity volume)
+- [ ] Frequency limited to 1-2x/week maximum
+- [ ] Recovery between intervals adequate (3-4min active recovery)
+- [ ] Zone 2 training maintained (2:1 ratio, Zone 2:VO2max volume)
+- [ ] (if concurrent training) Separated from heavy lower body strength by 48-72hr
+- [ ] (if same-day unavoidable) Strength scheduled first
+- [ ] Common errors avoided (see section above)

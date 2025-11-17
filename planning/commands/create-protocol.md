@@ -1,6 +1,6 @@
 # Create Fitness Protocol(s)
 
-## Input: $ARGUMENTS
+## Topic/reference: $ARGUMENTS
 
 Create concise, constraint-based protocol file(s) for multi-agent planning systems. Input can be:
 - **Topic(s)**: `"VO2 max training"` or `["threshold training", "zone 2", "tempo runs"]`

@@ -45,3 +45,37 @@ This directory contains specialized protocols for prevention, performance enhanc
 - Assessing if cold exposure will interfere with hypertrophy goals
 
 **What you'll find:** Cold water immersion interference windows (avoid 0-4hrs post-strength), sauna protocols for endurance enhancement (+5% VO2 peak), application logic by training type, contrast therapy protocols
+
+---
+
+### [concurrent-training.md](concurrent-training.md)
+**Load when:**
+- Programming hybrid training (strength + endurance together)
+- User asks about combining lifting and cardio
+- Determining session sequencing on same day
+- Assessing interference effects between modalities
+- Planning block emphasis rotation (strength-focus vs endurance-focus)
+
+**What you'll find:** AMPK/mTOR interference mechanisms, 6-8hr separation rules, same-day session ordering (skill→strength→cardio), low-impact cardio selection, block periodization frameworks, energy balance requirements, auto-regulation strategies
+
+---
+
+### [spine-health.md](spine-health.md)
+**Load when:**
+- User has lower back pain history or current back issues
+- Programming squats, deadlifts, or loaded hip hinge movements
+- User asks about core stability or back injury prevention
+- Reviewing movement mechanics before heavy lifting
+
+**What you'll find:** McGill Big 3 protocol (curl-up, side plank, bird-dog with dosage), hip hinge mechanics and bracing techniques, spinal mobility routines (cat-camel, cobra, dead hangs), contraindications for acute disc issues, integration with strength training
+
+---
+
+### [recovery-deload.md](recovery-deload.md)
+**Load when:**
+- Determining when to schedule deload week
+- User showing signs of accumulated fatigue (elevated resting HR, poor sleep, performance plateau)
+- Planning program periodization (deload frequency)
+- User asks about recovery strategies or feeling overtrained
+
+**What you'll find:** Scheduled deload timing (every 4-8 weeks by training age), reactive deload triggers (resting HR, sleep, performance signals), deload methods (volume/intensity/frequency reduction), active recovery protocols, HRV/biometric monitoring guidelines
