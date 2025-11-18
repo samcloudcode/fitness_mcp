@@ -104,6 +104,123 @@ The `skills/` folder contains exportable skill modules that provide fitness coac
 
 **Using Skills**: Skills use progressive disclosure - load the main SKILL.md entry point, then load specific workflow files (PROGRAM, WEEK, WORKOUT, COACHING) as needed for each task.
 
+### Planning System Architecture
+
+The `planning/` folder provides a **framework-agnostic multi-agent validation system** for high-quality training plan creation. Unlike the Skills folder (single-LLM instruction-following), the Planning System uses multi-agent collaboration with systematic validation gates.
+
+**Directory Structure:**
+```
+planning/
+├── commands/           # Markdown workflows for program/week/workout creation
+│   ├── create-program.md
+│   ├── create-protocol.md
+│   ├── create-workout.md
+│   └── plan-week.md
+├── protocols/          # Domain expertise protocols (8+ protocols)
+│   ├── INDEX.md       # Central protocol index
+│   ├── knee-health-prevention.md
+│   ├── vo2max-development.md
+│   ├── concurrent-training.md
+│   ├── recovery-deload.md
+│   ├── spine-health.md
+│   ├── tendon-health.md
+│   ├── sauna-cold-exposure.md
+│   └── lean-fat-loss.md
+└── README.md          # Framework integration guide
+```
+
+**Core Pattern: Validation-Gated Artifact Generation**
+
+The Planning System follows a 6-step workflow:
+
+1. **Extract Context**: Load user data via MCP `overview(context='planning')` + `get()` for specific items
+2. **Reference Protocols**: Load relevant domain protocols from `planning/protocols/INDEX.md`
+3. **Design Strategy**: Create program/week/workout draft based on user context + protocol guidance
+4. **Validate with Agent**: Use `plan-validator` agent to cross-check against safety checklists and user constraints
+5. **Propose to User**: Present validated plan with complete rationale
+6. **Save on Approval**: Store to MCP database via `upsert()` only after user confirms
+
+**Plan-Validator Agent** (`.claude/agents/plan-validator.md`):
+- Systematic validation against safety checklists, load management, goal alignment
+- Cross-references user context (goals, knowledge entries with injuries/limitations, recent logs, preferences)
+- Structured feedback: Critical Issues (must fix), Important Considerations (should address), Suggestions (optimizations)
+- Prevents common errors: concurrent training interference, inadequate aerobic base for VO2 work, missing injury contraindications, excessive volume progressions
+
+**Protocol Library** (8+ evidence-based protocols):
+- **knee-health-prevention.md**: Daily 10-15min circuit, ATG progressions, valgus prevention
+- **vo2max-development.md**: 3-8min intervals @ 90-100% max HR, frequency limits, aerobic base prerequisites
+- **concurrent-training.md**: AMPK/mTOR interference management, 6-8hr separation rules, block periodization
+- **recovery-deload.md**: Scheduled vs reactive deloads, 50% volume reduction, biometric triggers
+- **spine-health.md**: McGill Big 3, hip hinge mechanics, spinal mobility routines
+- **tendon-health.md**: Isometric loading (4×30s @ 70% MVC), collagen supplementation timing
+- **sauna-cold-exposure.md**: CWI interference windows, sauna endurance protocols
+- **lean-fat-loss.md**: Energy deficit strategies, protein targets, training prioritization
+
+Each protocol includes:
+- **Application logic**: When to apply, dosage, frequency, context modifiers
+- **Contraindications**: When NOT to apply, warning signs
+- **Integration guidelines**: Sequencing with other training, compatible modalities
+- **Common errors**: Mistakes to avoid with corrections
+- **Application checklist**: Systematic verification steps
+
+**Why Multi-Agent Validation Matters:**
+
+Single-LLM instruction-following (Skills folder) works well for real-time coaching conversations but can miss safety issues or protocol violations under time pressure. The Planning System adds a dedicated validator agent that:
+- Systematically checks ALL knowledge entries for contraindications (injuries, limitations)
+- Verifies load management (48hr concurrent training separation, 2:1 aerobic base ratio, etc.)
+- Ensures progression rates match training age and recovery capacity
+- Catches common errors (VO2 intervals before heavy squats, missing deload schedule, etc.)
+
+**Example Validation Workflow:**
+
+```python
+# Step 1: Extract Context
+overview(context='planning')  # Goals, program, week, knowledge, logs (2 weeks)
+get(items=[{'kind': 'knowledge', 'key': 'meniscus-tear-history'}])  # Full injury details
+
+# Step 2: Reference Protocols (load relevant .md files)
+# - knee-health-prevention.md (meniscus history)
+# - concurrent-training.md (hybrid athlete)
+# - vo2max-development.md (VO2 goal)
+# - recovery-deload.md (deload planning)
+
+# Step 3: Design Strategy
+# Draft 8-week program with training split, exercise selection, progression targets
+
+# Step 4: Validate with Agent
+# Task tool with subagent_type='plan-validator'
+# Agent returns: Critical Issues (VO2 intervals 24hr before squats - violates concurrent training protocol)
+
+# Step 5: Iterate & Fix
+# Revise program: swap Tue/Wed to get 48hr separation per protocol
+
+# Step 6: Propose & Save
+# User approves → upsert(kind='program', key='current-program', content='...')
+```
+
+**Framework Integration:**
+
+The Planning System is framework-agnostic and can be used with:
+- **Claude Code**: Use Task tool to call plan-validator agent
+- **LangChain**: Load protocols as context, use separate LLM call for validation
+- **CrewAI**: Assign protocols to domain expert agents, validator as quality gate
+- **AutoGen**: Multi-agent conversation with validator agent as reviewer
+- **Custom frameworks**: Protocols are markdown files, validator logic is portable
+
+See [planning/README.md](planning/README.md) for framework-specific integration examples.
+
+**When to Use Planning System vs Skills:**
+
+| Use Planning System | Use Skills Folder |
+|---------------------|-------------------|
+| Creating programs (8-12 week strategy) | Real-time workout coaching |
+| Need validation gates (safety-critical) | Quick questions/conversations |
+| Multi-agent review valuable | Single-LLM sufficient |
+| Framework-agnostic approach | Claude Code environment only |
+| High-stakes plans (comeback from injury) | Routine workout logging |
+
+Both systems use the same MCP server for data persistence.
+
 ## Development Commands
 
 ### Running Tests
