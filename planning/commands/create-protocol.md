@@ -405,6 +405,115 @@ See `planning/protocols/vo2max-development.md` for ideal Training Stimulus proto
 - Trade-off surface quantified (+10% gains, +50% injury risk @ 2x/week)
 - Priority hierarchy clear
 - Errors mechanism-based
+- **Includes protocol application checklist** (see below)
+
+---
+
+## Protocol Application Checklist (Required)
+
+**Every protocol MUST include either an Application Checklist OR Application Logic decision tree to help agents apply the protocol correctly.**
+
+### Checklist Format (for Movement Practice & Injury/Rehab)
+
+Use when the protocol has prerequisites and safety checks that must ALL be verified:
+
+```markdown
+## Protocol Application Checklist
+
+When programming [protocol name], verify:
+
+- [ ] [Prerequisite 1 - what must be true before using]
+- [ ] [Prerequisite 2 - base capability or training state]
+- [ ] [Safety check 1 - contraindication ruled out]
+- [ ] [Safety check 2 - dosage appropriate]
+- [ ] [Integration check 1 - spacing from other training]
+- [ ] [Integration check 2 - recovery adequate]
+- [ ] (if concurrent training) [Specific interference consideration]
+- [ ] (if same-day unavoidable) [Sequencing rule]
+- [ ] Common errors avoided (see section above)
+```
+
+**Example from vo2max-development.md:**
+
+```markdown
+## Protocol Application Checklist
+
+When programming VO2 max work, verify:
+
+- [ ] Aerobic base established (minimum 8 weeks Zone 2 training)
+- [ ] Interval structure specified (3-8min work intervals @ 90-100% max HR)
+- [ ] Total work time appropriate (12-20min high-intensity volume)
+- [ ] Frequency limited to 1-2x/week maximum
+- [ ] Recovery between intervals adequate (3-4min active recovery)
+- [ ] Zone 2 training maintained (2:1 ratio, Zone 2:VO2max volume)
+- [ ] (if concurrent training) Separated from heavy lower body strength by 48-72hr
+- [ ] (if same-day unavoidable) Strength scheduled first
+- [ ] Common errors avoided (see section above)
+```
+
+### Decision Tree Format (for Training Stimulus)
+
+Use when the protocol has branching logic based on goals, training state, or context:
+
+```markdown
+## Application Logic
+```
+[Goal/context question]?
+├─ [Condition A] → [Action A + parameters]
+├─ [Condition B] → [Action B + parameters]
+├─ [Condition C] → [Action C + parameters]
+└─ [Condition D] → [Action D + parameters]
+
+[Secondary question]?
+├─ [Condition X] → [Modification X]
+├─ [Condition Y] → [Modification Y]
+└─ [Condition Z] → [Modification Z]
+```
+```
+
+**Example from greasing-the-groove.md:**
+
+```markdown
+## Application Logic
+```
+Primary goal?
+├─ Hypertrophy → Skip GTG (insufficient tension), snacks OK if >6h from sessions, NEAT always
+├─ Max strength → GTG compatible (neural focus), snacks low priority, NEAT always
+├─ Skill development (pull-ups, handstands) → GTG primary tool, snacks optional, NEAT always
+├─ General fitness → All three compatible, prioritize adherence
+└─ Maintenance → Snacks primary (91% adherence), GTG optional, NEAT always
+
+Current training phase?
+├─ Accumulation/Volume → GTG low volume (3-5 sets), snacks moderate, NEAT always
+├─ Intensification → GTG compatible, snacks reduce intensity, NEAT always
+├─ Taper → NEAT only, skip GTG and vigorous snacks
+└─ Deload → Snacks at low intensity, GTG reduced volume (2-3 sets), NEAT always
+```
+```
+
+### When to Use Which Format
+
+**Use Checklist when:**
+
+- Protocol has clear prerequisites (must establish base before progressing)
+- Safety checks are critical (contraindications, dosage limits)
+- All items must be verified (AND logic, not branching OR logic)
+- Common in: Movement Practice, Injury/Rehab, Exercise Progression protocols
+
+**Use Decision Tree when:**
+
+- Protocol application varies by goal, training state, or context
+- Multiple valid paths exist (different approaches for different situations)
+- Agents need to select appropriate variant (branching logic)
+- Common in: Training Stimulus, Complex integration protocols
+
+**Both formats should:**
+
+- Be scannable in <30 seconds
+- Include specific parameters (not vague "adequate" - use "3-4min recovery")
+- Reference conditional logic (if concurrent training, if same-day, if injury present)
+- Direct agent to avoid common errors
+- Enable agent to apply protocol without ambiguity
 
 ## Key Principles
 

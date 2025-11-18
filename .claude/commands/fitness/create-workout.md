@@ -1,5 +1,7 @@
 # Workout Creation
 
+## Client Input: $ARGUMENTS
+
 ## Background
 
 You are creating a specific workout plan for a training session. Workouts are executable documents that take the program's comprehensive strategy and apply it to today's specific session with exact exercises, loads, sets, reps, and execution details.
@@ -117,7 +119,11 @@ Refer to [protocols/INDEX.md](../protocols/INDEX.md) for the current list of ava
 - Movement cues from knowledge ("chest up, knees track toes")
 - Tempo where relevant ("2sec eccentric, explode up")
 - RPE calibration ("RPE 8 = bar speed consistent + 2 reps left")
-- Rest activities ("hip 90/90 stretches during 3min rest")
+- Rest activities - **BE SPECIFIC** with exact exercises:
+  - During upper work: Lower mobility ("hip 90/90 stretches during bench rest", "ankle mobility between press sets")
+  - During lower work: Upper mobility ("band pull-aparts between squats", "dead hangs during RDL rest")
+  - Principle: Use antagonist/complementary body regions for efficiency + active recovery
+  - Name specific exercises, not generic "mobility" - makes them actionable
 - Contingencies ("knee pain → swap Bulgarian for goblet squat")
 
 **Priority in 400-800 char limit:**
@@ -231,7 +237,7 @@ Date: 2025-10-28 (Monday, Week 4 of program)
 
 Warmup: Hip CARs 2x5 each direction (knee health per knowledge), bodyweight squats 2x10 wide stance, bar squat 1x10, 135x5, 185x3, 225x1.
 
-Main: Back Squat 3x5 @ 225lbs wide stance RPE 6-7 (deload from 5x5, same load, reduced volume. Cues: chest up, knees track toes per knowledge, 2sec eccentric, explode up. Focus technique over intensity. Hip 90/90 stretches during 3min rest).
+Main: Back Squat 3x5 @ 225lbs wide stance RPE 6-7 (deload from 5x5, same load, reduced volume. Cues: chest up, knees track toes per knowledge, 2sec eccentric, explode up. Focus technique over intensity. Band pull-aparts + dead hang 30sec during 3min rest for upper mobility).
 
 RDL 2x8 @ 185lbs RPE 5-6 (deload from 3x8, maintain hip hinge. Stretch bottom, squeeze glutes top).
 
@@ -255,7 +261,7 @@ Today is week 4 deload (60% volume per program). Maintaining your loads from las
 - RDL: 2x8 @ 185lbs (vs normal 3x8)
 - Lunges: 2x12 bodyweight only
 
-Focus on movement quality and technique. Hip mobility warmup + rest period stretches.
+Focus on movement quality and technique. Hip mobility warmup + upper body mobility during squat rest periods (band pull-aparts, dead hangs).
 
 Approve to save?"
 
@@ -265,7 +271,7 @@ After approval:
 upsert(
     kind='plan',
     key='2025-10-28-lower',
-    content='''6am Home Lower (squat-315 p1, deload). Warmup: Hip CARs 2x5, goblet squat 2x10. Main: Back squat 3x5 @ 225 wide stance RPE 6-7 (deload from 5x5, cues: chest up, knees track toes, 2sec eccentric - hip 90/90 rest periods). RDL 2x8 @ 185 RPE 5-6. Walking lunges 2x12 BW (control eccentric). Cooldown: Hip/quad stretch, foam roll. Contingency: Knee pain → goblet squat. Why: Week 4 deload (60% volume), same loads, reduced sets, technique focus.'''
+    content='''6am Home Lower (squat-315 p1, deload). Warmup: Hip CARs 2x5, goblet squat 2x10. Main: Back squat 3x5 @ 225 wide stance RPE 6-7 (deload from 5x5, cues: chest up, knees track toes, 2sec eccentric - band pull-aparts + dead hang 30sec rest periods for upper mobility). RDL 2x8 @ 185 RPE 5-6. Walking lunges 2x12 BW (control eccentric). Cooldown: Hip/quad stretch, foam roll. Contingency: Knee pain → goblet squat. Why: Week 4 deload (60% volume), same loads, reduced sets, technique focus.'''
 )
 ```
 
@@ -331,7 +337,7 @@ Before finalizing, verify the workout artifact contains:
 - [ ] ALL injury limitations respected (no contraindicated exercises)
 - [ ] Movement cues from knowledge entries included
 - [ ] RPE calibration clear (e.g., "RPE 8 = 2 reps left")
-- [ ] Rest period activities specified (mobility, antagonist work)
+- [ ] Rest period activities specified with exact exercises (e.g., "band pull-aparts during squats" not just "mobility")
 - [ ] Accessories with purpose stated
 - [ ] Cooldown included (stretching, foam rolling)
 - [ ] Session matches week focus (if week says "deload", workout reflects it)

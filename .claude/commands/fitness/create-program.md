@@ -1,18 +1,22 @@
 # Program Creation
 
+## Topic/reference: $ARGUMENTS
+
 ## Overview
 
 **What is a program?** A 1-3 month strategic document showing how all goals fit together and providing the framework to achieve them.
 
-**Program contains:** Goals/priorities, training split, exercise architecture, progression framework, recovery strategy, constraint management, complete rationale.
+**Program contains:** Goals/priorities, training split (upper/lower, full-body, etc.), training frequencies (4x strength/week, 3x cardio/week), exercise architecture, progression framework, recovery strategy, constraint management, complete rationale.
+
+**Program does NOT contain:** Specific weekdays (Mon/Tue/etc.) - that's handled in week planning.
 
 **Hierarchy:**
 
-- **Program** = 1-3 month strategy (frameworks & principles)
-- **Week** = 7-day schedule (when/where for sessions)
+- **Program** = 1-3 month strategy (WHAT exercises, HOW MANY per week, HOW to progress)
+- **Week** = 7-day schedule (WHEN - specific days like Mon/Tue, WHERE - which gym)
 - **Workout** = Today's session (exact exercises/sets/reps/weights)
 
-**Storage:** Kind `program`, key `current-program` (single living document), 400-600 chars. Update when strategy changes or becomes stale (3+ months).
+**Storage:** Kind `program`, key `current-program` (single living document), up to 1000 words. Update when strategy changes or becomes stale (3+ months).
 
 ---
 
@@ -97,7 +101,8 @@ Use the Task tool to call the plan-validator agent with your drafted program. Th
 
 **Present strategy with:**
 
-- Training frequencies & split (4x upper/lower, 3x full-body, etc.)
+- Training frequencies (4x strength/week, 3x cardio/week, etc.)
+- Training split (upper/lower, full-body, push/pull/legs, etc.)
 - Exercise architecture (main/secondary/accessories/mobility)
 - Starting weights (from logs)
 - Progression timeline & method
@@ -105,7 +110,7 @@ Use the Task tool to call the plan-validator agent with your drafted program. Th
 - How it addresses ALL injury/movement limitations
 - Complete rationale (why this approach)
 
-**NOT a daily schedule** - that's for week planning.
+**NOTE:** Program defines WHAT exercises, HOW MANY sessions per week, and HOW to progress. Week planning (plan-week.md) handles WHEN (specific days like Mon/Tue/etc.).
 
 ## Step 6: Get Approval & Save
 
@@ -133,7 +138,7 @@ upsert(
 
 **Step 1 - Extract Context:**
 
-Overview shows rugby goal (Squat 225→315, Bench 185→225 by April). Knee tracking issues, shoulder impingement. Home gym, trains Mon/Tue/Thu/Sat. Currently 3x/week, 12-15 sets/session, good recovery.
+Overview shows rugby goal (Squat 225→315, Bench 185→225 by April). Knee tracking issues, shoulder impingement. Home gym available. Currently 3x/week, 12-15 sets/session, good recovery.
 
 **Step 2 - Load Protocols:**
 
@@ -149,13 +154,13 @@ Goal alignment 9/10, Safety 10/10, Adherence 9/10, Evidence-based 9/10. Overall:
 
 **Step 5 - Propose:**
 
-"Upper/Lower 4x/week (Mon/Tue/Thu/Sat). 3 blocks: hypertrophy (4x8-12) → strength (4x5-8) → peak (3x3-5). Wide stance squats, front OHP only (addresses knee/shoulder). Starting from logs: Squat 225, Bench 185, Deadlift 275. Deload every 4 weeks. Approve?"
+"Upper/Lower split, 4x strength sessions per week. 3 blocks: hypertrophy (4x8-12) → strength (4x5-8) → peak (3x3-5). Wide stance squats, front OHP only (addresses knee/shoulder). Starting from logs: Squat 225, Bench 185, Deadlift 275. Deload every 4 weeks. Specific days will be scheduled in week planning. Approve?"
 
 **Step 6 - Save:**
 
 ```python
 upsert(kind='program', key='current-program',
-       content='12wk rugby strength: 4x upper/lower (Mon/Tue/Thu/Sat). Blocks 1-3: 8-12→5-8→3-5 reps. Squat 225→285, bench 185→215, deadlift 275→335. Wide stance squats ONLY (knee), front OHP only (shoulder). Daily hip mobility, face pulls. Deload wk 4,8,12. Why: April peak, fits schedule/equipment, addresses limitations.')
+       content='12wk rugby strength: 4x/week upper/lower split. Blocks 1-3: 8-12→5-8→3-5 reps. Squat 225→285, bench 185→215, deadlift 275→335. Wide stance squats ONLY (knee), front OHP only (shoulder). Daily hip mobility, face pulls. Deload wk 4,8,12. Why: April peak, addresses limitations, builds strength foundation for rugby.')
 ```
 
 ---
@@ -317,15 +322,15 @@ upsert(kind='program', key='current-program',
 
 **Flexibility within structure:**
 
-- Program "workout types" not rigid "Monday must be X" (if life disrupts Monday, do that workout Tuesday instead)
+- Define "workout types" in program, not rigid day assignments (week handles specific days)
 - Minimum viable dose defined (if busy week, hit 2x strength + 1x endurance "anchor" sessions, skip optional extras)
-- Backup plans (if gym closed, have bodyweight or home equipment alternative programmed)
+- Backup plans for constraints (gym closed → bodyweight alternatives, travel → hotel workouts)
 
 **Realistic integration:**
 
-- Schedule sessions at times you'll ACTUALLY train (if mornings never happen, don't program 6am workouts)
-- Equipment access (don't program barbell work if you don't have regular gym access)
-- Travel weeks (have "hotel workout" or "minimal equipment" variations pre-planned)
+- Plan sessions around actual schedule patterns (mornings vs evenings, weekday vs weekend availability)
+- Equipment access matches reality (barbell program needs regular gym access)
+- Travel adaptations pre-planned (hotel workout variations, minimal equipment options)
 
 **Mental freshness:**
 
@@ -384,6 +389,7 @@ upsert(kind='program', key='current-program',
 ❌ No deload strategy
 ❌ Progression inappropriate for training age
 ❌ Programming contraindicated exercises
+❌ Including specific weekdays (Mon/Tue/etc.) - that's for week planning
 ❌ Too verbose (>600 chars) or too vague (<400 chars)
 
 ---
@@ -393,17 +399,19 @@ upsert(kind='program', key='current-program',
 Before finalizing, verify the program artifact contains:
 
 - [ ] Goals with priorities, current state, targets, and deadlines included
-- [ ] Training frequencies specified (e.g., "4x strength, 3x endurance")
+- [ ] Training frequencies specified (e.g., "4x strength/week, 3x endurance/week")
+- [ ] Training split defined (e.g., "upper/lower", "full-body", "push/pull/legs")
 - [ ] Exercise architecture defined (main/secondary/accessories/mobility)
 - [ ] Progression framework specified with method (e.g., "+5lb/week", "wave loading")
 - [ ] Deload schedule included (e.g., "every 4 weeks, 50% volume")
-- [ ] Recovery strategy clear (hard/easy distribution, rest days)
+- [ ] Recovery strategy clear (hard/easy distribution, total rest days per week)
 - [ ] ALL injury limitations from knowledge entries addressed with modifications
-- [ ] Equipment constraints managed (which gym when, travel adaptations)
-- [ ] Schedule constraints integrated (travel days, work conflicts)
+- [ ] Equipment strategy noted (gym access, home equipment, travel adaptations)
+- [ ] Known constraints acknowledged (travel patterns, work conflicts) - NOT scheduled to specific days
 - [ ] Progression rate realistic for training age
 - [ ] Complete "why" rationale connecting to goals
 - [ ] Content length 400-600 chars
+- [ ] NO specific weekdays mentioned (that's for week planning)
 - [ ] (if applicable) Block emphasis rotation defined for competing goals
 
 ---

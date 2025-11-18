@@ -37,6 +37,30 @@ This directory contains specialized protocols for prevention, performance enhanc
 
 ---
 
+### [leomoves-hiit.md](leomoves-hiit.md)
+**Load when:**
+- User mentions LeoMoves training or complex movement patterns
+- Programming HIIT with bodyweight/calisthenics/animal flows
+- User wants movement quality + conditioning combined
+- Building power-endurance without heavy external loads
+- Determining interference with concurrent strength training
+
+**What you'll find:** LeoMoves methodology (20-30s on, 10s rest format), adaptation timeline for motor learning + power + cardio, CNS recovery requirements (48h), integration constraints with strength work (-10-15% interference if <24h), progression guidelines for movement complexity
+
+---
+
+### [greasing-the-groove.md](greasing-the-groove.md)
+**Load when:**
+- User wants to develop bodyweight skills (pull-ups, push-ups, pistol squats)
+- Programming distributed practice throughout the day
+- User has sedentary occupation and needs movement strategies
+- Determining fitness maintenance during busy periods
+- User asks about exercise snacking or NEAT (Non-Exercise Activity Thermogenesis)
+
+**What you'll find:** Greasing the Groove protocol (5-10 sets/day at 40-60% max, 3+ hours apart), exercise snacking formats (<5min vigorous 2x/day), NEAT strategies, adaptation timelines, integration with main training, interference windows
+
+---
+
 ### [sauna-cold-exposure.md](sauna-cold-exposure.md)
 **Load when:**
 - User asks about ice baths, cold plunges, or sauna use

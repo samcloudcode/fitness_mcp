@@ -1,5 +1,7 @@
 # Week Planning
 
+## Client Input: $ARGUMENTS
+
 ## Background
 
 You are creating a 7-day training schedule for a user. Weeks are scheduling documents that implement the program strategy within real-world constraints and maximize adherence.
@@ -179,9 +181,9 @@ fitness-mcp:upsert(
 
 ### Equipment Context
 
-**Program already specifies equipment strategy - week implements it:**
-- Program: "Office Mon/Wed (DBs only), Home Tue/Fri (full rack)"
-- Week: Maps to actual locations/days
+**Program specifies equipment contexts - week maps them to specific days:**
+- Program: "Office gym (DBs only), Home gym (full rack)"
+- Week: "Mon/Wed Office, Tue/Fri Home" - maps locations to actual days
 
 ---
 
@@ -371,7 +373,8 @@ fitness-mcp:upsert(
 ### Example 1: Standard Week
 
 **Context from overview:**
-- Program: 4x upper/lower, office Mon/Thu, home Tue/Fri
+- Program: 4x/week upper/lower split, office gym (DBs), home gym (full rack)
+- Preferences: Office access Mon/Thu, home gym Tue/Fri
 - No travel, Week 4 of strength block
 
 ```

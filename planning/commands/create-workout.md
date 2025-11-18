@@ -1,5 +1,7 @@
 # Workout Creation
 
+## Client Input: $ARGUMENTS
+
 ## Background
 
 You are creating a specific workout plan for a training session. Workouts are executable documents that take the program's comprehensive strategy and apply it to today's specific session with exact exercises, loads, sets, reps, and execution details.
